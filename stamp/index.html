@@ -53,15 +53,15 @@ textarea{resize:vertical;min-height:50px}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 16px 8px;margin-bottom:12px;box-shadow:var(--shadow)}
-.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-en);margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px 10px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-en);margin-bottom:16px;padding-bottom:10px;border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:8px}
 .card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
 
 .form-group{margin-bottom:14px}
 .form-label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
 .form-label .req{color:var(--accent);margin-left:2px}
 
-.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
 .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow)}
 .stat-num{font-family:var(--font-en);font-size:28px;font-weight:800}
 .stat-num.gold{color:var(--gold)}
@@ -191,7 +191,8 @@ textarea{resize:vertical;min-height:50px}
       <div class="tab-bar"><button class="tab active" onclick="setGrantTab('single',this)">個別付与</button><button class="tab" onclick="setGrantTab('bulk',this)">一括付与</button></div>
       <div id="grant-single">
         <div class="form-group"><label class="form-label">スタッフ<span class="req">*</span></label><div style="position:relative"><input type="text" id="g-staff-search" placeholder="名前で検索..." autocomplete="off" onfocus="openGrantDD()" oninput="filterGrantDD()"><div id="g-staff-dd" style="position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:180px;overflow-y:auto;z-index:20;display:none;box-shadow:0 8px 24px rgba(0,0,0,.1)"></div></div></div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap"><div class="form-group" style="flex:1;min-width:120px"><label class="form-label">スタンプ数<span class="req">*</span></label><input type="number" id="g-count" value="1" min="1" max="99" inputmode="numeric"></div><div class="form-group" style="flex:1;min-width:140px"><label class="form-label">日付</label><input type="date" id="g-date"></div></div>
+        <div class="form-group"><label class="form-label">スタンプ数<span class="req">*</span></label><input type="number" id="g-count" value="1" min="1" max="99" inputmode="numeric"></div>
+        <div class="form-group"><label class="form-label">日付</label><input type="date" id="g-date"></div>
         <div class="form-group"><label class="form-label">理由<span class="req">*</span></label><select id="g-reason" style="appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6560' fill='none' stroke-width='2'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center"><option value="">-- 選択してください --</option></select></div>
         <button class="btn btn-gold btn-full" onclick="grantSingle()">★ スタンプを付与</button>
       </div>
