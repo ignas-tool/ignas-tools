@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#faf6f0">
+<title>IGNAS スタンプラリー</title>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#faf6f0;--bg2:#ffffff;--bg3:#f0ebe3;--bg4:#e5ddd5;
+  --text:#2a2520;--text2:#6b6560;--text3:#9e9890;
+  --accent:#e86430;--accent-bg:rgba(232,100,48,0.08);
+  --gold:#c08820;--gold-bg:rgba(192,136,32,0.10);--gold-solid:#f0c040;
+  --green:#3dba6d;--green-bg:rgba(61,186,109,0.08);
+  --blue:#4a9ede;--blue-bg:rgba(74,158,222,0.08);
+  --red:#dc4030;--red-bg:rgba(220,64,48,0.08);
+  --border:#e0d8d0;--radius:14px;--radius-sm:10px;
+  --shadow:0 2px 12px rgba(42,37,32,0.07);
+  --font-ja:'Zen Kaku Gothic New',sans-serif;
+  --font-en:'DM Sans',sans-serif;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font-ja);color:var(--text);-webkit-tap-highlight-color:transparent}
+button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
+input,select,textarea{font-family:inherit;font-size:15px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;width:100%;outline:none;transition:border-color .2s;box-shadow:inset 0 1px 2px rgba(0,0,0,.03)}
+input:focus,textarea:focus{border-color:var(--accent)}
+textarea{resize:vertical;min-height:50px}
+
+#app{height:100%;display:flex;flex-direction:column;max-width:520px;margin:0 auto;overflow:hidden}
+.header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.header h1{font-family:var(--font-en);font-size:17px;font-weight:700;letter-spacing:-.3px}
+.header h1 span{color:var(--gold)}
+.header-btn{width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;transition:background .2s}
+.header-btn:active{background:var(--bg4)}
+.header-btn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:var(--safe-bottom);box-shadow:0 -1px 4px rgba(0,0,0,.04)}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;gap:3px}
+.nav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
+.nav-item span{font-size:10px;color:var(--text3);font-weight:500;transition:color .2s}
+.nav-item.active svg{stroke:var(--gold)}
+.nav-item.active span{color:var(--gold)}
+
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
+.main::-webkit-scrollbar{width:3px}
+.main::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.page{display:none;padding:16px;padding-bottom:20px;animation:fadeUp .25s ease}
+.page.active{display:block}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-en);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
+
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.form-label .req{color:var(--accent);margin-left:2px}
+
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center;box-shadow:var(--shadow)}
+.stat-num{font-family:var(--font-en);font-size:28px;font-weight:800}
+.stat-num.gold{color:var(--gold)}
+.stat-num.green{color:var(--green)}
+.stat-num.blue{color:var(--blue)}
+.stat-num.accent{color:var(--accent)}
+.stat-label{font-size:11px;color:var(--text3);margin-top:4px}
+
+.stamp-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--bg3)}
+.stamp-avatar{width:40px;height:40px;border-radius:50%;background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);font-size:14px;flex-shrink:0;position:relative}
+.stamp-rank{position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--gold-solid);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-en)}
+.stamp-info{flex:1;min-width:0}
+.stamp-name{font-weight:600;font-size:14px}
+.stamp-count{font-family:var(--font-en);font-size:13px;color:var(--gold);font-weight:700}
+.stamp-next{font-size:11px;color:var(--text3);margin-top:2px}
+.stamp-bar{height:6px;background:var(--bg3);border-radius:3px;margin-top:6px;overflow:hidden}
+.stamp-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
+.stamp-bar-fill.t1{background:var(--green)}
+.stamp-bar-fill.t2{background:var(--blue)}
+.stamp-bar-fill.t3{background:var(--gold)}
+
+.btn{padding:10px 16px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;transition:all .15s}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:var(--gold-solid);color:#fff;box-shadow:0 4px 12px rgba(192,136,32,.2)}
+.btn-accent{background:var(--accent);color:#fff}
+.btn-outline{background:var(--bg2);border:1.5px solid var(--border);color:var(--text2)}
+.btn-outline:active{background:var(--bg3)}
+.btn-sm{padding:8px 12px;font-size:12px;border-radius:6px}
+.btn-full{width:100%;padding:16px;font-size:16px;font-weight:700;border-radius:var(--radius)}
+.btn-danger{color:var(--red);border-color:var(--red)}
+
+.rule-card{background:var(--bg3);border-radius:var(--radius-sm);padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.rule-info{flex:1;min-width:0}
+.rule-desc{font-size:13px;font-weight:500}
+.rule-stamp{font-family:var(--font-en);font-size:12px;color:var(--gold);font-weight:700}
+.rule-toggle{width:44px;height:26px;border-radius:13px;background:var(--bg4);position:relative;transition:background .2s;flex-shrink:0;cursor:pointer}
+.rule-toggle.on{background:var(--green)}
+.rule-toggle .knob{width:20px;height:20px;border-radius:50%;background:#fff;position:absolute;top:3px;left:3px;transition:transform .2s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.rule-toggle.on .knob{transform:translateX(18px)}
+
+.milestone{display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:8px}
+.milestone-emoji{font-size:28px;flex-shrink:0}
+.milestone-info{flex:1}
+.milestone-name{font-weight:600;font-size:14px}
+.milestone-req{font-family:var(--font-en);font-size:12px;color:var(--gold)}
+.milestone-exchanged{font-size:11px;color:var(--text3);margin-top:2px}
+
+.log-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg3);font-size:13px}
+.log-dot{width:8px;height:8px;border-radius:50%;margin-top:5px;flex-shrink:0}
+.log-dot.add{background:var(--green)}
+.log-dot.remove{background:var(--red)}
+.log-dot.redeem{background:var(--gold-solid)}
+.log-name{font-weight:600}
+.log-meta{color:var(--text3);font-size:11px;margin-top:2px}
+
+.chart-wrap{height:180px;position:relative;margin-top:8px}
+
+.modal-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(42,37,32,.4);z-index:100;display:none;align-items:center;justify-content:center;padding:16px}
+.modal-bg.open{display:flex}
+.modal{background:var(--bg2);border-radius:var(--radius);padding:20px;width:100%;max-width:420px;max-height:80vh;overflow-y:auto;box-shadow:0 16px 48px rgba(0,0,0,.12)}
+.modal h3{font-size:16px;margin-bottom:16px}
+.modal-actions{display:flex;gap:8px;margin-top:16px}
+.modal-actions button{flex:1}
+
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);padding:12px 24px;border-radius:var(--radius);font-weight:600;font-size:14px;z-index:200;transition:transform .3s ease;box-shadow:0 4px 20px rgba(0,0,0,.12);color:#fff}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.gold{background:var(--gold-solid);color:#fff}
+
+.sheet-bg{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(42,37,32,.4);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.sheet-bg.open{display:flex}
+.sheet{background:var(--bg2);border-radius:var(--radius) var(--radius) 0 0;width:100%;max-width:520px;max-height:85vh;overflow-y:auto;padding:20px 16px calc(20px + var(--safe-bottom));animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--bg4);margin:0 auto 16px}
+
+.stamp-card-visual{background:linear-gradient(135deg,#fffdf8,#f5efe5);border:2px solid var(--gold-solid);border-radius:16px;padding:20px;text-align:center;position:relative;overflow:hidden;box-shadow:0 4px 24px rgba(192,136,32,.1)}
+.stamp-card-visual::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(240,192,64,.08) 0%,transparent 60%);pointer-events:none}
+.stamp-card-title{font-family:var(--font-en);font-size:14px;color:var(--gold);font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.stamp-card-name{font-size:18px;font-weight:700;margin-top:4px}
+.stamp-card-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:16px 0}
+.stamp-slot{width:36px;height:36px;border-radius:50%;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;margin:0 auto;transition:all .3s;background:var(--bg)}
+.stamp-slot.filled{border:2px solid var(--gold-solid);background:var(--gold-bg)}
+.stamp-slot.milestone-slot{border-color:var(--accent)}
+.stamp-slot.milestone-slot.filled{background:var(--accent-bg);border-color:var(--accent)}
+.stamp-card-progress{font-size:13px;color:var(--text2)}
+.stamp-card-next{font-size:12px;color:var(--gold);margin-top:4px;font-weight:600}
+
+.tab-bar{display:flex;border-bottom:1px solid var(--border);margin-bottom:12px}
+.tab{flex:1;text-align:center;padding:10px;font-size:13px;font-weight:500;color:var(--text3);border-bottom:2px solid transparent;transition:all .2s}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+
+.empty{text-align:center;padding:32px 20px;color:var(--text3);font-size:14px}
+
+/* Staff item in staff page */
+.staff-manage-item{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bg3)}
+.staff-manage-avatar{width:36px;height:36px;border-radius:50%;background:var(--accent-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--accent);font-size:14px;flex-shrink:0}
+.staff-manage-info{flex:1;min-width:0}
+.staff-manage-info .name{font-weight:600;font-size:14px}
+.staff-manage-info .sub{font-size:12px;color:var(--text3)}
+.staff-manage-actions{display:flex;gap:4px}
+.staff-manage-actions button{width:30px;height:30px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center}
+.staff-manage-actions svg{width:14px;height:14px;stroke:var(--text2);fill:none;stroke-width:2}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="header">
+    <h1>IGNAS <span>★</span> STAMP</h1>
+    <button class="header-btn" onclick="showSettingsModal()"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
+  </div>
+  <div class="main">
+    <!-- Dashboard -->
+    <div class="page active" id="page-dash">
+      <div class="stat-grid">
+        <div class="stat-card"><div class="stat-num gold" id="s-total">0</div><div class="stat-label">総発行スタンプ</div></div>
+        <div class="stat-card"><div class="stat-num green" id="s-active">0%</div><div class="stat-label">アクティブ率</div></div>
+        <div class="stat-card"><div class="stat-num blue" id="s-redeemed">0</div><div class="stat-label">景品交換数</div></div>
+        <div class="stat-card"><div class="stat-num accent" id="s-month">0</div><div class="stat-label">今月発行</div></div>
+      </div>
+      <div class="card"><div class="card-title"><span class="dot"></span>RANKING TOP 10</div><div id="ranking-list"></div></div>
+      <div class="card"><div class="card-title"><span class="dot"></span>景品交換状況</div><div id="milestone-status"></div></div>
+      <div class="card"><div class="card-title"><span class="dot"></span>月別スタンプ発行</div><div class="chart-wrap"><canvas id="chart-monthly"></canvas></div></div>
+    </div>
+    <!-- Grant -->
+    <div class="page" id="page-grant">
+      <div class="tab-bar"><button class="tab active" onclick="setGrantTab('single',this)">個別付与</button><button class="tab" onclick="setGrantTab('bulk',this)">一括付与</button></div>
+      <div id="grant-single">
+        <div class="form-group"><label class="form-label">スタッフ<span class="req">*</span></label><div style="position:relative"><input type="text" id="g-staff-search" placeholder="名前で検索..." autocomplete="off" onfocus="openGrantDD()" oninput="filterGrantDD()"><div id="g-staff-dd" style="position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-radius:0 0 var(--radius-sm) var(--radius-sm);max-height:180px;overflow-y:auto;z-index:20;display:none;box-shadow:0 8px 24px rgba(0,0,0,.1)"></div></div></div>
+        <div style="display:flex;gap:10px"><div class="form-group" style="flex:1"><label class="form-label">スタンプ数<span class="req">*</span></label><input type="number" id="g-count" value="1" min="1" max="99" inputmode="numeric"></div><div class="form-group" style="flex:1.5"><label class="form-label">日付</label><input type="date" id="g-date"></div></div>
+        <div class="form-group"><label class="form-label">理由<span class="req">*</span></label><select id="g-reason" style="appearance:none;background-image:url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6560' fill='none' stroke-width='2'/%3E%3C/svg%3E&quot;);background-repeat:no-repeat;background-position:right 14px center"><option value="">-- 選択してください --</option></select></div>
+        <button class="btn btn-gold btn-full" onclick="grantSingle()">★ スタンプを付与</button>
+      </div>
+      <div id="grant-bulk" style="display:none">
+        <div class="form-group"><label class="form-label">稼働日<span class="req">*</span></label><input type="date" id="gb-date"></div>
+        <div class="form-group"><label class="form-label">スタンプ数（1人あたり）</label><input type="number" id="gb-count" value="1" min="1" max="99" inputmode="numeric"></div>
+        <div class="form-group"><label class="form-label">対象スタッフ</label><div id="bulk-staff-list" style="max-height:240px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--bg2)"></div></div>
+        <button class="btn btn-gold btn-full" onclick="grantBulk()">★ 一括付与</button>
+      </div>
+    </div>
+    <!-- Staff -->
+    <div class="page" id="page-staff">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="text" id="staff-search" placeholder="スタッフ検索..." oninput="renderStaffPage()" style="flex:1">
+        <button class="btn btn-accent btn-sm" onclick="showAddStaffModal()" style="white-space:nowrap;padding:10px 14px">+ 追加</button>
+      </div>
+      <div id="staff-stamp-list"></div>
+    </div>
+    <!-- History -->
+    <div class="page" id="page-history">
+      <div class="tab-bar"><button class="tab active" onclick="setHistTab('all',this)">すべて</button><button class="tab" onclick="setHistTab('add',this)">付与</button><button class="tab" onclick="setHistTab('remove',this)">取消</button><button class="tab" onclick="setHistTab('redeem',this)">交換</button></div>
+      <div id="history-log"></div>
+    </div>
+    <!-- Rules -->
+    <div class="page" id="page-rules">
+      <div class="card"><div class="card-title"><span class="dot"></span>付与理由リスト</div><div id="reasons-list"></div><div style="display:flex;gap:8px;margin-top:8px"><input type="text" id="new-reason" placeholder="新しい理由を入力..." style="flex:1"><button class="btn btn-accent btn-sm" onclick="addReason()">追加</button></div></div>
+      <div class="card"><div class="card-title"><span class="dot"></span>景品マイルストーン</div><div id="milestones-list"></div><button class="btn btn-outline btn-sm" onclick="showMsModal()" style="margin-top:8px">+ 追加</button></div>
+      <div class="card"><div class="card-title"><span class="dot"></span>ボーナスルール</div><div id="rules-list"></div><button class="btn btn-outline btn-sm" onclick="showRuleModal()" style="margin-top:8px">+ ルール追加</button></div>
+    </div>
+  </div>
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="switchPage('dash')"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg><span>ホーム</span></button>
+    <button class="nav-item" onclick="switchPage('grant')"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg><span>付与</span></button>
+    <button class="nav-item" onclick="switchPage('staff')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span>スタッフ</span></button>
+    <button class="nav-item" onclick="switchPage('history')"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg><span>履歴</span></button>
+    <button class="nav-item" onclick="switchPage('rules')"><svg viewBox="0 0 24 24"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>設定</span></button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="sheet-bg" id="staff-sheet" onclick="if(event.target===this)closeSheet()"><div class="sheet" id="sheet-content"></div></div>
+
+<!-- Add Staff Modal -->
+<div class="modal-bg" id="add-staff-modal" onclick="if(event.target===this)closeAddStaffModal()">
+  <div class="modal">
+    <h3 id="add-staff-title">スタッフ追加</h3>
+    <div class="form-group"><label class="form-label">名前<span class="req">*</span></label><input type="text" id="as-name" placeholder="山田太郎"></div>
+    <div class="form-group"><label class="form-label">LINE名</label><input type="text" id="as-line" placeholder="LINE表示名"></div>
+    <div class="form-group"><label class="form-label">担当エリア</label><input type="text" id="as-area" placeholder="例：埼玉・東京北部"></div>
+    <div class="form-group"><label class="form-label">稼働開始日</label><input type="date" id="as-start"></div>
+    <input type="hidden" id="as-id">
+    <div class="modal-actions"><button class="btn btn-outline" onclick="closeAddStaffModal()">キャンセル</button><button class="btn btn-accent" onclick="saveAddStaff()">保存</button></div>
+  </div>
+</div>
+
+<!-- Rule Modal -->
+<div class="modal-bg" id="rule-modal" onclick="if(event.target===this)closeRuleModal()"><div class="modal"><h3 id="rule-modal-title">ボーナスルール追加</h3><div class="form-group"><label class="form-label">条件テキスト<span class="req">*</span></label><input type="text" id="rm-desc" placeholder="例：月4回以上稼働で"></div><div class="form-group"><label class="form-label">付与スタンプ数<span class="req">*</span></label><input type="number" id="rm-count" value="1" min="0.5" step="0.5" inputmode="decimal"></div><input type="hidden" id="rm-id"><div class="modal-actions"><button class="btn btn-outline" onclick="closeRuleModal()">キャンセル</button><button class="btn btn-gold" onclick="saveRule()">保存</button></div></div></div>
+
+<!-- Milestone Modal -->
+<div class="modal-bg" id="ms-modal" onclick="if(event.target===this)closeMsModal()"><div class="modal"><h3 id="ms-modal-title">マイルストーン追加</h3><div class="form-group"><label class="form-label">必要スタンプ数<span class="req">*</span></label><input type="number" id="ms-req" min="1" inputmode="numeric"></div><div class="form-group"><label class="form-label">景品名<span class="req">*</span></label><input type="text" id="ms-name" placeholder="例：ディズニーチケット"></div><div class="form-group"><label class="form-label">絵文字</label><input type="text" id="ms-emoji" placeholder="🏰" maxlength="4"></div><input type="hidden" id="ms-id"><div class="modal-actions"><button class="btn btn-outline" onclick="closeMsModal()">キャンセル</button><button class="btn btn-gold" onclick="saveMilestone()">保存</button></div></div></div>
+
+<!-- Settings Modal -->
+<div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeSettingsModal()"><div class="modal"><h3>データ管理</h3><button class="btn btn-outline btn-full" onclick="exportStampCSV()" style="margin-bottom:8px">📥 スタンプ履歴CSV</button><button class="btn btn-outline btn-full" onclick="exportStaffJSON()" style="margin-bottom:8px">📥 LINE連携用JSON</button><button class="btn btn-outline btn-full btn-danger" onclick="clearStampData()">🗑 スタンプデータ削除</button><div class="modal-actions"><button class="btn btn-outline btn-full" onclick="closeSettingsModal()">閉じる</button></div></div></div>
+
+<script>
+const DB={get(k,d=[]){try{return JSON.parse(localStorage.getItem('ignas_'+k))||d}catch{return d}},set(k,v){localStorage.setItem('ignas_'+k,JSON.stringify(v))}};
+function getStaff(){return DB.get('staffList',[])}function setStaff(v){DB.set('staffList',v)}function getStamps(){return DB.get('stamps',[])}function setStamps(v){DB.set('stamps',v)}
+function getRules(){const r=DB.get('bonusRules',[]);if(!r.length){const d=[{id:'default',description:'稼働1回',stampCount:1,isActive:true,createdAt:new Date().toISOString()}];DB.set('bonusRules',d);return d}return r}function setRules(v){DB.set('bonusRules',v)}
+function getMilestones(){const m=DB.get('milestones',[]);if(!m.length){const d=[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}];DB.set('milestones',d);return d}return m}function setMilestones(v){DB.set('milestones',v)}
+function getRedemptions(){return DB.get('redemptions',[])}function setRedemptions(v){DB.set('redemptions',v)}
+function getReasons(){const r=DB.get('stampReasons',[]);if(!r.length){const d=['稼働1回','月4回以上稼働ボーナス','獲得5件以上ボーナス','新人紹介','アンケート提出'];DB.set('stampReasons',d);return d}return r}function setReasons(v){DB.set('stampReasons',v)}
+function renderReasonSelect(){const sel=document.getElementById('g-reason');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">-- 選択してください --</option>'+getReasons().map(r=>`<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('')}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function today(){return new Date().toISOString().slice(0,10)}
+function staffTotal(sid){return getStamps().filter(s=>s.staffId===sid).reduce((a,s)=>a+(s.count||0),0)}
+
+let currentPage='dash';
+function switchPage(p){currentPage=p;document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['dash','grant','staff','history','rules'][i]===p));if(p==='dash')refreshDash();if(p==='grant')initGrant();if(p==='staff')renderStaffPage();if(p==='history')renderHistory();if(p==='rules')renderRules()}
+
+function refreshDash(){const stamps=getStamps(),staff=getStaff(),redemptions=getRedemptions(),ms=getMilestones(),now=new Date(),monthStr=now.toISOString().slice(0,7);
+document.getElementById('s-total').textContent=stamps.reduce((a,s)=>a+(s.count||0),0);
+document.getElementById('s-month').textContent=stamps.filter(s=>(s.date||'').startsWith(monthStr)).reduce((a,s)=>a+(s.count||0),0);
+const oneMonthAgo=new Date(now-30*86400000).toISOString().slice(0,10),activeIds=new Set(stamps.filter(s=>s.date>=oneMonthAgo).map(s=>s.staffId));
+document.getElementById('s-active').textContent=(staff.length?Math.round(activeIds.size/staff.length*100):0)+'%';
+document.getElementById('s-redeemed').textContent=redemptions.length;
+const totals=staff.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total).slice(0,10);
+document.getElementById('ranking-list').innerHTML=totals.length?totals.map((s,i)=>{const msArr=ms.sort((a,b)=>a.requiredStamps-b.requiredStamps);const next=msArr.find(m=>m.requiredStamps>s.total);const prev=msArr.filter(m=>m.requiredStamps<=s.total).pop();const base=prev?prev.requiredStamps:0;const target=next?next.requiredStamps:msArr[msArr.length-1]?.requiredStamps||30;const pct=Math.min(100,Math.round((s.total-base)/(target-base)*100));const tier=!next?'t3':next.requiredStamps<=15?'t1':next.requiredStamps<=30?'t2':'t3';return`<div class="stamp-item" onclick="showStaffDetail('${s.id}')"><div class="stamp-avatar">${s.name.slice(0,1)}${i<3?`<span class="stamp-rank">${i+1}</span>`:''}</div><div class="stamp-info"><div class="stamp-name">${s.name} <span class="stamp-count">★${s.total}</span></div><div class="stamp-next">${next?`次：${next.rewardEmoji} ${next.rewardName}まであと${next.requiredStamps-s.total}個`:'🎉 全達成！'}</div><div class="stamp-bar"><div class="stamp-bar-fill ${tier}" style="width:${pct}%"></div></div></div></div>`}).join(''):'<div class="empty">スタッフを登録してください</div>';
+document.getElementById('milestone-status').innerHTML=ms.sort((a,b)=>a.requiredStamps-b.requiredStamps).map(m=>{const ex=redemptions.filter(r=>r.milestoneId===m.id).length;const el=staff.filter(s=>staffTotal(s.id)>=m.requiredStamps).length;return`<div class="milestone"><div class="milestone-emoji">${m.rewardEmoji||'🎁'}</div><div class="milestone-info"><div class="milestone-name">${m.rewardName}</div><div class="milestone-req">★${m.requiredStamps}スタンプ</div><div class="milestone-exchanged">交換済: ${ex}名 / 到達: ${el}名</div></div></div>`}).join('');
+const monthlyData={};stamps.forEach(s=>{const m=(s.date||'').slice(0,7);if(m)monthlyData[m]=(monthlyData[m]||0)+(s.count||0)});const months=Object.keys(monthlyData).sort().slice(-6);const ctx=document.getElementById('chart-monthly');if(window.mc)window.mc.destroy();window.mc=new Chart(ctx,{type:'line',data:{labels:months.map(m=>m.split('-')[1]+'月'),datasets:[{data:months.map(m=>monthlyData[m]),borderColor:'#c08820',backgroundColor:'rgba(192,136,32,0.08)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#c08820'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6560',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#9e9890',stepSize:5},grid:{color:'rgba(224,216,208,0.5)'}}}}})}
+
+// Grant
+let grantTab='single',grantStaffId='';
+function setGrantTab(t,el){grantTab=t;document.querySelectorAll('#page-grant .tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');document.getElementById('grant-single').style.display=t==='single'?'block':'none';document.getElementById('grant-bulk').style.display=t==='bulk'?'block':'none';if(t==='bulk')renderBulkList()}
+function initGrant(){document.getElementById('g-date').value=today();document.getElementById('gb-date').value=today();renderReasonSelect();if(grantTab==='bulk')renderBulkList()}
+function openGrantDD(){filterGrantDD();document.getElementById('g-staff-dd').style.display='block'}
+function filterGrantDD(){const q=document.getElementById('g-staff-search').value.toLowerCase(),staff=getStaff(),f=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff;document.getElementById('g-staff-dd').innerHTML=f.map(s=>`<div style="padding:10px 14px;border-bottom:1px solid var(--bg3);display:flex;justify-content:space-between;cursor:pointer" onmousedown="selectGrantStaff('${s.id}')"><span style="font-weight:500">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></div>`).join('')||'<div style="padding:14px;color:var(--text3);font-size:13px">該当なし</div>';document.getElementById('g-staff-dd').style.display='block'}
+function selectGrantStaff(id){grantStaffId=id;const s=getStaff().find(x=>x.id===id);document.getElementById('g-staff-search').value=s?s.name:'';document.getElementById('g-staff-dd').style.display='none'}
+document.addEventListener('click',e=>{if(!e.target.closest('#page-grant .form-group'))document.getElementById('g-staff-dd').style.display='none'});
+function grantSingle(){if(!grantStaffId){toast('スタッフを選択','error');return}const c=+document.getElementById('g-count').value;if(!c){toast('スタンプ数を入力','error');return}const r=document.getElementById('g-reason').value;if(!r){toast('理由を選択してください','error');return}const stamps=getStamps();stamps.push({id:genId(),staffId:grantStaffId,count:c,reason:r,date:document.getElementById('g-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);const s=getStaff().find(x=>x.id===grantStaffId),nt=staffTotal(grantStaffId);checkMilestone(grantStaffId,nt);toast(`${s?s.name:''}に★${c}付与！（計${nt}）`,'gold');document.getElementById('g-reason').value='';grantStaffId='';document.getElementById('g-staff-search').value=''}
+function renderBulkList(){const staff=getStaff(),fbs=DB.get('feedbacks',[]),date=document.getElementById('gb-date').value,fbIds=new Set(fbs.filter(f=>f.date===date).map(f=>f.staffId));document.getElementById('bulk-staff-list').innerHTML=staff.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer"><input type="checkbox" class="bc" value="${s.id}" ${fbIds.has(s.id)?'checked':''} style="width:20px;height:20px;accent-color:var(--gold-solid)"><span style="font-weight:500;flex:1">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></label>`).join('')||'<div class="empty">スタッフを登録してください</div>'}
+document.getElementById('gb-date')?.addEventListener('change',renderBulkList);
+function grantBulk(){const c=+document.getElementById('gb-count').value||1,checks=document.querySelectorAll('.bc:checked');if(!checks.length){toast('対象を選択','error');return}const stamps=getStamps();let n=0;checks.forEach(x=>{stamps.push({id:genId(),staffId:x.value,count:c,reason:'稼働（一括）',date:document.getElementById('gb-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});n++;checkMilestone(x.value,staffTotal(x.value)+c)});setStamps(stamps);toast(`${n}名に★${c}を一括付与！`,'gold')}
+function checkMilestone(sid,total){getMilestones().forEach(m=>{if(total>=m.requiredStamps&&!getRedemptions().some(r=>r.staffId===sid&&r.milestoneId===m.id)){const s=getStaff().find(x=>x.id===sid);setTimeout(()=>toast(`🎉 ${s?s.name:''}が「${m.rewardEmoji} ${m.rewardName}」に到達！`,'gold'),500)}})}
+
+// Staff Page (with registration)
+function renderStaffPage(){const staff=getStaff(),q=(document.getElementById('staff-search').value||'').toLowerCase(),filtered=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff,sorted=filtered.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total);
+document.getElementById('staff-stamp-list').innerHTML=sorted.length?sorted.map(s=>{const ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),next=ms.find(m=>m.requiredStamps>s.total);return`<div class="stamp-item" onclick="showStaffDetail('${s.id}')"><div class="stamp-avatar">${s.name.slice(0,1)}</div><div class="stamp-info"><div class="stamp-name">${s.name} <span class="stamp-count">★${s.total}</span></div><div class="stamp-next">${next?`${next.rewardEmoji} まであと${next.requiredStamps-s.total}個`:'🎉 全達成'}</div></div><div style="display:flex;gap:4px"><button class="btn btn-gold btn-sm" onclick="event.stopPropagation();quickGrant('${s.id}')">+★</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editStaff('${s.id}')">✏️</button></div></div>`}).join(''):'<div class="empty">スタッフが登録されていません<br>「+ 追加」から登録してください</div>'}
+function quickGrant(sid){const stamps=getStamps();stamps.push({id:genId(),staffId:sid,count:1,reason:'稼働1回',date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);const s=getStaff().find(x=>x.id===sid),nt=staffTotal(sid);checkMilestone(sid,nt);toast(`${s?s.name:''}に★1付与（計${nt}）`,'gold');renderStaffPage()}
+
+// Add/Edit Staff Modal
+function showAddStaffModal(id){const s=id?getStaff().find(x=>x.id===id):null;document.getElementById('add-staff-title').textContent=s?'スタッフ編集':'スタッフ追加';document.getElementById('as-name').value=s?s.name:'';document.getElementById('as-line').value=s?s.lineName||'':'';document.getElementById('as-area').value=s?s.area||'':'';document.getElementById('as-start').value=s?s.startDate||'':'';document.getElementById('as-id').value=s?s.id:'';document.getElementById('add-staff-modal').classList.add('open')}
+function closeAddStaffModal(){document.getElementById('add-staff-modal').classList.remove('open')}
+function editStaff(id){showAddStaffModal(id)}
+function saveAddStaff(){const name=document.getElementById('as-name').value.trim();if(!name){toast('名前を入力','error');return}const staff=getStaff(),id=document.getElementById('as-id').value;if(id){const s=staff.find(x=>x.id===id);if(s){s.name=name;s.lineName=document.getElementById('as-line').value.trim();s.area=document.getElementById('as-area').value.trim();s.startDate=document.getElementById('as-start').value}}else staff.push({id:genId(),name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value,isPinned:false});setStaff(staff);closeAddStaffModal();renderStaffPage();toast(id?'更新しました':'追加しました','success')}
+
+// Staff Detail Sheet
+function showStaffDetail(sid){const s=getStaff().find(x=>x.id===sid);if(!s)return;const total=staffTotal(sid),stamps=getStamps().filter(x=>x.staffId===sid).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),redemptions=getRedemptions().filter(r=>r.staffId===sid),maxS=ms.length?ms[ms.length-1].requiredStamps:30;
+let slots='';for(let i=1;i<=maxS;i++){const isMs=ms.some(m=>m.requiredStamps===i),filled=i<=total,mObj=ms.find(m=>m.requiredStamps===i);slots+=`<div class="stamp-slot ${filled?'filled':''} ${isMs?'milestone-slot':''}">${filled?(isMs?mObj.rewardEmoji:'★'):isMs?mObj.rewardEmoji:''}</div>`}
+const next=ms.find(m=>m.requiredStamps>total);
+document.getElementById('sheet-content').innerHTML=`<div class="sheet-handle"></div><div class="stamp-card-visual"><div class="stamp-card-title">IGNAS STAMP CARD</div><div class="stamp-card-name">${s.name}</div><div class="stamp-card-grid">${slots}</div><div class="stamp-card-progress">★${total} / ${maxS}</div>${next?`<div class="stamp-card-next">次の景品：${next.rewardEmoji} ${next.rewardName}（あと${next.requiredStamps-total}個）</div>`:'<div class="stamp-card-next">🎉 全マイルストーン達成！</div>'}</div>
+<div style="margin-top:16px"><div class="card-title"><span class="dot"></span>景品交換</div>${ms.map(m=>{const rd=redemptions.some(r=>r.milestoneId===m.id),can=total>=m.requiredStamps&&!rd;return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg3)"><div><span style="font-size:18px">${m.rewardEmoji}</span> ${m.rewardName} <span style="color:var(--gold);font-size:12px">★${m.requiredStamps}</span></div>${rd?'<span style="color:var(--green);font-size:12px;font-weight:600">✓ 交換済</span>':can?`<button class="btn btn-gold btn-sm" onclick="redeem('${sid}','${m.id}')">交換</button>`:'<span style="color:var(--text3);font-size:12px">未到達</span>'}</div>`}).join('')}</div>
+<div style="margin-top:16px"><div class="card-title"><span class="dot"></span>付与履歴</div>${stamps.slice(0,15).map(st=>`<div class="log-item"><div class="log-dot ${st.count>0?'add':'remove'}"></div><div style="flex:1"><div>${st.count>0?'+':''}<strong>${st.count}</strong> ${st.reason||''}</div><div class="log-meta">${st.date||''}</div></div></div>`).join('')||'<div class="empty">履歴なし</div>'}</div>
+<div style="margin-top:16px;display:flex;gap:8px"><button class="btn btn-outline btn-full btn-danger" onclick="revokeStamp('${sid}')">取消</button><button class="btn btn-gold btn-full" onclick="closeSheet()">閉じる</button></div>`;
+document.getElementById('staff-sheet').classList.add('open')}
+function closeSheet(){document.getElementById('staff-sheet').classList.remove('open')}
+function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;const r=getRedemptions();r.push({id:genId(),staffId:sid,milestoneId:mid,redeemedAt:new Date().toISOString()});setRedemptions(r);toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}
+function revokeStamp(sid){const reason=prompt('取消理由：');if(!reason)return;const c=+prompt('取消スタンプ数（例：1）：');if(!c||c<=0)return;const stamps=getStamps();stamps.push({id:genId(),staffId:sid,count:-c,reason:'取消: '+reason,date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);toast('取消しました','error');showStaffDetail(sid)}
+
+// History
+let histTab='all';
+function setHistTab(t,el){histTab=t;document.querySelectorAll('#page-history .tab').forEach(x=>x.classList.remove('active'));el.classList.add('active');renderHistory()}
+function renderHistory(){const stamps=getStamps().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),staff=getStaff(),redemptions=getRedemptions().sort((a,b)=>(b.redeemedAt||'').localeCompare(a.redeemedAt||'')),ms=getMilestones();let items=[];stamps.forEach(s=>{if(histTab==='add'&&s.count<=0)return;if(histTab==='remove'&&s.count>0)return;if(histTab==='redeem')return;const st=staff.find(x=>x.id===s.staffId);items.push({type:s.count>0?'add':'remove',name:st?st.name:'不明',detail:`${s.count>0?'+':''}${s.count} ${s.reason||''}`,meta:s.date||'',time:s.createdAt})});if(histTab==='all'||histTab==='redeem')redemptions.forEach(r=>{const st=staff.find(x=>x.id===r.staffId),m=ms.find(x=>x.id===r.milestoneId);items.push({type:'redeem',name:st?st.name:'不明',detail:`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換`,meta:r.redeemedAt?.slice(0,10)||'',time:r.redeemedAt})});items.sort((a,b)=>(b.time||'').localeCompare(a.time||''));document.getElementById('history-log').innerHTML=items.length?items.slice(0,50).map(i=>`<div class="log-item"><div class="log-dot ${i.type}"></div><div style="flex:1"><div><span class="log-name">${i.name}</span> ${i.detail}</div><div class="log-meta">${i.meta}</div></div></div>`).join(''):'<div class="empty">履歴がありません</div>'}
+
+// Rules
+function renderRules(){renderReasons();const rules=getRules(),ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps);document.getElementById('milestones-list').innerHTML=ms.map(m=>`<div class="milestone"><div class="milestone-emoji">${m.rewardEmoji||'🎁'}</div><div class="milestone-info"><div class="milestone-name">${m.rewardName}</div><div class="milestone-req">★${m.requiredStamps}スタンプ</div></div><div style="display:flex;gap:4px"><button class="btn btn-outline btn-sm" onclick="editMs('${m.id}')">✏️</button><button class="btn btn-outline btn-sm btn-danger" onclick="deleteMs('${m.id}')">🗑</button></div></div>`).join('');
+document.getElementById('rules-list').innerHTML=rules.map(r=>`<div class="rule-card"><div class="rule-info"><div class="rule-desc">${r.description}</div><div class="rule-stamp">+★${r.stampCount}</div></div><div class="rule-toggle ${r.isActive?'on':''}" onclick="toggleRule('${r.id}')"><div class="knob"></div></div><button class="btn btn-outline btn-sm" onclick="editRule('${r.id}')" style="margin-left:4px">✏️</button><button class="btn btn-outline btn-sm btn-danger" onclick="deleteRule('${r.id}')">🗑</button></div>`).join('')}
+function toggleRule(id){const r=getRules(),x=r.find(a=>a.id===id);if(x){x.isActive=!x.isActive;setRules(r);renderRules()}}
+function renderReasons(){const reasons=getReasons();document.getElementById('reasons-list').innerHTML=reasons.length?reasons.map((r,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--bg3)"><span style="flex:1;font-size:14px">${r}</span><button class="btn btn-outline btn-sm" onclick="editReason(${i})">✏️</button><button class="btn btn-outline btn-sm btn-danger" onclick="deleteReason(${i})">🗑</button></div>`).join(''):'<div class="empty" style="padding:16px">理由がまだ登録されていません</div>'}
+function addReason(){const v=document.getElementById('new-reason').value.trim();if(!v){toast('理由を入力してください','error');return}const reasons=getReasons();if(reasons.includes(v)){toast('既に登録済みです','error');return}reasons.push(v);setReasons(reasons);document.getElementById('new-reason').value='';renderReasons();renderReasonSelect();toast('追加しました','success')}
+function editReason(i){const reasons=getReasons();const nv=prompt('理由を編集：',reasons[i]);if(nv===null||!nv.trim())return;reasons[i]=nv.trim();setReasons(reasons);renderReasons();renderReasonSelect();toast('更新しました','success')}
+function deleteReason(i){const reasons=getReasons();if(!confirm(`「${reasons[i]}」を削除しますか？`))return;reasons.splice(i,1);setReasons(reasons);renderReasons();renderReasonSelect();toast('削除しました','success')}
+
+// Rule Modal
+function showRuleModal(id){const r=id?getRules().find(x=>x.id===id):null;document.getElementById('rule-modal-title').textContent=r?'ルール編集':'ボーナスルール追加';document.getElementById('rm-desc').value=r?r.description:'';document.getElementById('rm-count').value=r?r.stampCount:1;document.getElementById('rm-id').value=r?r.id:'';document.getElementById('rule-modal').classList.add('open')}function closeRuleModal(){document.getElementById('rule-modal').classList.remove('open')}function editRule(id){showRuleModal(id)}
+function saveRule(){const d=document.getElementById('rm-desc').value.trim(),c=+document.getElementById('rm-count').value;if(!d||!c){toast('入力してください','error');return}const rules=getRules(),id=document.getElementById('rm-id').value;if(id){const r=rules.find(x=>x.id===id);if(r){r.description=d;r.stampCount=c}}else rules.push({id:genId(),description:d,stampCount:c,isActive:true,createdAt:new Date().toISOString()});setRules(rules);closeRuleModal();renderRules();toast('保存しました','success')}
+function deleteRule(id){if(!confirm('削除しますか？'))return;setRules(getRules().filter(r=>r.id!==id));renderRules();toast('削除','success')}
+
+// Milestone Modal
+function showMsModal(id){const m=id?getMilestones().find(x=>x.id===id):null;document.getElementById('ms-modal-title').textContent=m?'編集':'マイルストーン追加';document.getElementById('ms-req').value=m?m.requiredStamps:'';document.getElementById('ms-name').value=m?m.rewardName:'';document.getElementById('ms-emoji').value=m?m.rewardEmoji:'';document.getElementById('ms-id').value=m?m.id:'';document.getElementById('ms-modal').classList.add('open')}function closeMsModal(){document.getElementById('ms-modal').classList.remove('open')}function editMs(id){showMsModal(id)}
+function saveMilestone(){const r=+document.getElementById('ms-req').value,n=document.getElementById('ms-name').value.trim(),e=document.getElementById('ms-emoji').value.trim()||'🎁';if(!r||!n){toast('入力してください','error');return}const ms=getMilestones(),id=document.getElementById('ms-id').value;if(id){const m=ms.find(x=>x.id===id);if(m){m.requiredStamps=r;m.rewardName=n;m.rewardEmoji=e}}else ms.push({id:genId(),requiredStamps:r,rewardName:n,rewardEmoji:e});setMilestones(ms);closeMsModal();renderRules();toast('保存しました','success')}
+function deleteMs(id){if(!confirm('削除しますか？'))return;setMilestones(getMilestones().filter(m=>m.id!==id));renderRules();toast('削除','success')}
+
+// Settings
+function showSettingsModal(){document.getElementById('settings-modal').classList.add('open')}function closeSettingsModal(){document.getElementById('settings-modal').classList.remove('open')}
+function exportStampCSV(){const stamps=getStamps(),staff=getStaff();let csv='スタッフ名,スタンプ数,理由,日付\n';stamps.forEach(s=>{const st=staff.find(x=>x.id===s.staffId);csv+=`"${st?st.name:'不明'}",${s.count},"${s.reason||''}","${s.date||''}"\n`});downloadCSV(csv,'ignas_stamps.csv')}
+function exportStaffJSON(){const staff=getStaff(),ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),rd=getRedemptions();const data=staff.map(s=>{const t=staffTotal(s.id),next=ms.find(m=>m.requiredStamps>t),redeemable=ms.filter(m=>t>=m.requiredStamps&&!rd.some(r=>r.staffId===s.id&&r.milestoneId===m.id));return{staffId:s.id,name:s.name,totalStamps:t,nextMilestone:next?{name:next.rewardName,emoji:next.rewardEmoji,remaining:next.requiredStamps-t}:null,redeemableRewards:redeemable.map(m=>({name:m.rewardName,emoji:m.rewardEmoji}))}});const b=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='ignas_stamp_line.json';a.click()}
+function clearStampData(){if(!confirm('スタンプデータを全て削除しますか？'))return;if(!confirm('本当に？'))return;['stamps','bonusRules','milestones','redemptions'].forEach(k=>localStorage.removeItem('ignas_'+k));toast('削除しました','error');refreshDash()}
+function downloadCSV(c,fn){const b=new Blob(['\uFEFF'+c],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click()}
+function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
+
+refreshDash();
+</script>
+</body>
+</html>
