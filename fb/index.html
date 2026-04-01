@@ -261,6 +261,14 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
       <div id="staff-list"></div>
       <div style="margin-top:12px;display:flex;gap:8px"><button class="btn-secondary" onclick="exportCSV()" style="font-size:13px">📥 CSVエクスポート</button><button class="btn-secondary" onclick="showImportModal()" style="font-size:13px">📤 CSVインポート</button></div>
     </div>
+
+    <div class="page" id="page-store">
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <input type="text" id="store-filter" placeholder="店舗を検索..." style="flex:1" oninput="renderStoreList()">
+        <button class="btn-primary" style="width:auto;padding:10px 16px;font-size:14px;box-shadow:none" onclick="showStoreModal()">+ 追加</button>
+      </div>
+      <div id="store-list-page"></div>
+    </div>
   </div>
 
   <div class="bottom-nav">
@@ -268,6 +276,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <button class="nav-item" onclick="switchPage('record')"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span>記録</span></button>
     <button class="nav-item" onclick="switchPage('history')"><svg viewBox="0 0 24 24"><path d="M12 8v4l3 3"/><circle cx="12" cy="12" r="10"/></svg><span>履歴</span></button>
     <button class="nav-item" onclick="switchPage('staff')"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg><span>スタッフ</span></button>
+    <button class="nav-item" onclick="switchPage('store')"><svg viewBox="0 0 24 24"><path d="M3 3h18v4H3zM3 7v12a2 2 0 002 2h14a2 2 0 002-2V7"/><path d="M10 12h4"/></svg><span>店舗</span></button>
   </div>
 </div>
 
@@ -279,6 +288,17 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 <div class="modal-overlay" id="import-modal" onclick="if(event.target===this)closeImportModal()"><div class="modal"><h3>CSVインポート</h3><p style="font-size:13px;color:var(--text2);margin-bottom:12px">形式：名前,LINE名,担当エリア,稼働開始日(YYYY-MM-DD)</p><textarea id="import-csv" rows="6" placeholder="山田太郎,yamada_t,埼玉,2025-04-01&#10;佐藤花子,sato_h,東京,2025-06-15"></textarea><div class="modal-actions"><button class="cancel" onclick="closeImportModal()">キャンセル</button><button class="confirm" onclick="importCSV()">インポート</button></div></div></div>
 
+<div class="modal-overlay" id="store-modal" onclick="if(event.target===this)closeStoreModal()">
+  <div class="modal">
+    <h3 id="store-modal-title">店舗追加</h3>
+    <div class="form-group"><label class="form-label">店舗名<span class="required">*</span></label><input type="text" id="stm-name" placeholder="例：ヤマダデンキ 川口店"></div>
+    <div class="form-group"><label class="form-label">販路<span class="required">*</span></label><input type="text" id="stm-channel" list="channel-list" placeholder="例：家電量販店"><datalist id="channel-list"></datalist></div>
+    <div class="form-group"><label class="form-label">エリア<span class="required">*</span></label><input type="text" id="stm-area" list="area-list" placeholder="例：埼玉"><datalist id="area-list"></datalist></div>
+    <input type="hidden" id="stm-id">
+    <div class="modal-actions"><button class="cancel" onclick="closeStoreModal()">キャンセル</button><button class="confirm" onclick="saveStore()">保存</button></div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()"><div class="modal"><h3>設定</h3><div class="form-group"><label class="form-label">店舗リスト</label><textarea id="settings-stores" rows="4" placeholder="1行に1店舗"></textarea><div class="form-hint">各行が1つの店舗候補になります</div></div><div class="form-group"><label class="form-label">FB回収担当者リスト</label><textarea id="settings-recorders" rows="3" placeholder="1行に1名"></textarea><div class="form-hint">各行が1人の担当者になります</div></div><div class="form-group"><label class="form-label">研修タグ管理</label><textarea id="settings-tags" rows="4" placeholder="1行に1タグ"></textarea><div class="form-hint">各行が1つのタグになります</div></div><div class="form-group"><div class="toggle-row"><span style="font-size:14px">連続入力モードを既定ON</span><div class="toggle" id="toggle-continuous-default" onclick="toggleContinuousDefault()"><div class="knob"></div></div></div></div><div class="modal-actions"><button class="cancel" onclick="closeSettings()">閉じる</button><button class="confirm" onclick="saveSettings()">保存</button></div><div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn-secondary" onclick="exportAllData()" style="font-size:13px;margin-bottom:8px">📥 全データCSVエクスポート</button><button class="btn-secondary" onclick="clearAllData()" style="font-size:13px;color:var(--red);border-color:var(--red)">🗑 全データ削除</button></div></div></div>
 
 <script>
@@ -288,7 +308,7 @@ function genId(){return Date.now().toString(36)+Math.random().toString(36).slice
 
 let currentPage='dashboard',selectedStaffId=null,currentRating=0,currentAtmo='',selectedTags=new Set(),hasReport=false,needsFollowUp=false,continuousMode=false,historyFilter='all',editingStaffId=null,recognition=null;
 
-function switchPage(p){currentPage=p;document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['dashboard','record','history','staff'][i]===p));if(p==='dashboard')refreshDashboard();if(p==='history')renderHistory();if(p==='staff')renderStaffList();if(p==='record')initRecordPage()}
+function switchPage(p){currentPage=p;document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['dashboard','record','history','staff','store'][i]===p));if(p==='dashboard')refreshDashboard();if(p==='history')renderHistory();if(p==='staff')renderStaffList();if(p==='record')initRecordPage();if(p==='store')renderStoreList()}
 
 function refreshDashboard(){const fbs=getFBs(),staff=getStaff(),surveys=getSurveys(),now=new Date(),weekStart=new Date(now);weekStart.setDate(now.getDate()-now.getDay());const weekStr=weekStart.toISOString().slice(0,10),weekFBs=fbs.filter(f=>f.date>=weekStr);document.getElementById('stat-collected').textContent=weekFBs.length;const activeStaff=staff.length||1,rate=staff.length?Math.round(weekFBs.length/activeStaff*100):0;document.getElementById('stat-rate').textContent=rate+'%';const twoWeeksAgo=new Date(now-14*86400000).toISOString().slice(0,10),alerts=[];staff.forEach(s=>{const sfbs=fbs.filter(f=>f.staffId===s.id),last=sfbs.sort((a,b)=>b.date.localeCompare(a.date))[0];if(last&&last.needsFollowUp)alerts.push({name:s.name,reason:'要フォローフラグ ON',type:'red'});else if(last&&last.overallRating<=2)alerts.push({name:s.name,reason:'低評価（'+faces(last.overallRating)+'）',type:'red'});else if(!last||last.date<twoWeeksAgo)alerts.push({name:s.name,reason:'2週間以上FB未回収',type:'yellow'})});document.getElementById('stat-follow').textContent=alerts.filter(a=>a.type==='red').length;document.getElementById('stat-survey').textContent=surveys.filter(s=>!fbs.some(f=>f.staffId===s.staffId&&f.date===s.date)).length;
 const unconfirmed=surveys.filter(s=>!fbs.some(f=>f.staffId===s.staffId&&f.date===s.date));
@@ -297,7 +317,7 @@ document.getElementById('unconfirmed-surveys').innerHTML=unconfirmed.length?unco
 document.getElementById('alert-list').innerHTML=alerts.length?alerts.slice(0,8).map(a=>`<div class="alert-item"><div class="alert-dot ${a.type}"></div><div><div class="alert-name">${a.name}</div><div class="alert-reason">${a.reason}</div></div></div>`).join(''):'<div class="empty"><p>全員順調です 🎉</p></div>';const needsCount={};fbs.forEach(f=>(f.trainingNeeds||[]).forEach(t=>{needsCount[t]=(needsCount[t]||0)+1}));const sorted=Object.entries(needsCount).sort((a,b)=>b[1]-a[1]).slice(0,5);const ctx=document.getElementById('chart-needs');if(window.needsChart)window.needsChart.destroy();window.needsChart=new Chart(ctx,{type:'bar',data:{labels:sorted.map(s=>s[0]),datasets:[{data:sorted.map(s=>s[1]),backgroundColor:'rgba(232,100,48,0.5)',borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6560',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#9e9890',stepSize:1},grid:{color:'rgba(224,216,208,0.5)'}}}}});const recent=fbs.sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')).slice(0,10);document.getElementById('recent-fb-list').innerHTML=recent.length?recent.map(f=>{const s=staff.find(st=>st.id===f.staffId);return`<div class="fb-item" onclick="showFBDetail('${f.id}')"><div class="fb-face">${faces(f.overallRating)}</div><div class="fb-info"><div class="fb-name">${s?s.name:'不明'}</div><div class="fb-meta">${f.date} · ${f.store||'店舗未入力'}</div>${f.issues?`<div class="fb-issues">${f.issues}</div>`:''}<div class="fb-flags">${f.needsFollowUp?'<span class="fb-flag follow">要フォロー</span>':''}${f.hasReport===false&&f.acquisitions?'<span class="fb-flag no-report">日報なし</span>':''}</div></div></div>`}).join(''):'<div class="empty"><p>まだ記録がありません<br>「記録」タブからFBを入力しましょう</p></div>'}
 
 function initRecordPage(){if(!document.getElementById('fb-date').value)document.getElementById('fb-date').value=today();refreshStoreSuggestions();renderTags();checkSurveyRef();renderRecorderSelect()}
-function refreshStoreSuggestions(){const settings=getSettings();const fbStores=getFBs().map(f=>f.store).filter(Boolean);const allStores=[...new Set([...(settings.stores||[]),...fbStores])];document.getElementById('store-list').innerHTML=allStores.map(s=>`<option value="${s}">`).join('')}
+function refreshStoreSuggestions(){const stores=getStores();const fbStores=getFBs().map(f=>f.store).filter(Boolean);const allStores=[...new Set([...stores.map(s=>s.name),...fbStores])];document.getElementById('store-list').innerHTML=allStores.map(s=>`<option value="${s}">`).join('')}
 function renderTags(){const s=getSettings();document.getElementById('tag-group').innerHTML=s.tags.map(t=>`<button class="tag-btn ${selectedTags.has(t)?'selected':''}" onclick="toggleTag('${t}')">${t}</button>`).join('')}
 function renderRecorderSelect(){const s=getSettings();const sel=document.getElementById('fb-recorder');const cur=sel.value;sel.innerHTML='<option value="">-- 選択 --</option>'+(s.recorders||[]).map(r=>`<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('')}
 function toggleTag(t){if(selectedTags.has(t))selectedTags.delete(t);else selectedTags.add(t);renderTags()}
@@ -333,6 +353,58 @@ function showSettings(){const s=getSettings();document.getElementById('settings-
 function showToast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(isError?'error':'success');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 document.addEventListener('click',e=>{if(!e.target.closest('.staff-search-wrap'))document.getElementById('staff-dropdown').classList.remove('open')});
 document.getElementById('fb-date').addEventListener('change',checkSurveyRef);
+
+// ==================== STORE MANAGEMENT ====================
+function getStores(){return DB.get('storeList',[])}
+function setStores(list){DB.set('storeList',list)}
+let editingStoreId=null;
+
+function renderStoreList(){
+  const stores=getStores();
+  const q=(document.getElementById('store-filter').value||'').toLowerCase();
+  const filtered=q?stores.filter(s=>s.name.toLowerCase().includes(q)||s.channel.toLowerCase().includes(q)||s.area.toLowerCase().includes(q)):stores;
+  document.getElementById('store-list-page').innerHTML=filtered.length?filtered.map(s=>{
+    return`<div class="staff-item"><div class="staff-avatar" style="background:var(--green-bg);color:var(--green)">🏬</div><div class="staff-detail"><div class="name">${s.name}</div><div class="sub">${s.channel||'販路未設定'} · ${s.area||'エリア未設定'}</div></div><div class="staff-actions"><button class="staff-action-btn" onclick="editStore('${s.id}')" title="編集"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="staff-action-btn" onclick="removeStore('${s.id}')" title="削除"><svg viewBox="0 0 24 24" style="stroke:var(--red)"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div>`;
+  }).join(''):'<div class="empty"><p>店舗が登録されていません<br>「+ 追加」から登録してください</p></div>';
+}
+
+function showStoreModal(id){
+  editingStoreId=id||null;
+  document.getElementById('store-modal-title').textContent=id?'店舗編集':'店舗追加';
+  if(id){
+    const s=getStores().find(st=>st.id===id);
+    if(s){document.getElementById('stm-name').value=s.name;document.getElementById('stm-channel').value=s.channel||'';document.getElementById('stm-area').value=s.area||'';document.getElementById('stm-id').value=s.id}
+  }else{document.getElementById('stm-name').value='';document.getElementById('stm-channel').value='';document.getElementById('stm-area').value='';document.getElementById('stm-id').value=''}
+  // Populate datalists from existing store data
+  const stores=getStores();
+  const channels=[...new Set(stores.map(s=>s.channel).filter(Boolean))];
+  const areas=[...new Set(stores.map(s=>s.area).filter(Boolean))];
+  document.getElementById('channel-list').innerHTML=channels.map(c=>`<option value="${c}">`).join('');
+  document.getElementById('area-list').innerHTML=areas.map(a=>`<option value="${a}">`).join('');
+  document.getElementById('store-modal').classList.add('open');
+}
+function closeStoreModal(){document.getElementById('store-modal').classList.remove('open')}
+
+function saveStore(){
+  const name=document.getElementById('stm-name').value.trim();
+  const channel=document.getElementById('stm-channel').value.trim();
+  const area=document.getElementById('stm-area').value.trim();
+  if(!name){showToast('店舗名を入力してください',true);return}
+  if(!channel){showToast('販路を入力してください',true);return}
+  if(!area){showToast('エリアを入力してください',true);return}
+  const stores=getStores();
+  if(editingStoreId){
+    const idx=stores.findIndex(s=>s.id===editingStoreId);
+    if(idx>=0){stores[idx].name=name;stores[idx].channel=channel;stores[idx].area=area}
+  }else{
+    stores.push({id:genId(),name,channel,area});
+  }
+  setStores(stores);closeStoreModal();renderStoreList();refreshStoreSuggestions();showToast(editingStoreId?'更新しました':'追加しました');
+}
+
+function editStore(id){showStoreModal(id)}
+function removeStore(id){if(!confirm('この店舗を削除しますか？'))return;setStores(getStores().filter(s=>s.id!==id));renderStoreList();refreshStoreSuggestions();showToast('削除しました')}
+
 function init(){const s=getSettings();if(s.continuousDefault){continuousMode=true;document.getElementById('continuous-banner').style.display='flex'}refreshDashboard()}init();
 </script>
 </body>
