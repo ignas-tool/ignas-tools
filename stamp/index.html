@@ -27,7 +27,8 @@
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:var(--font-ja);color:var(--text);-webkit-tap-highlight-color:transparent}
 button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
-input,select,textarea{font-family:inherit;font-size:16px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 14px;width:100%;outline:none;transition:border-color .2s;box-shadow:inset 0 1px 2px rgba(0,0,0,.03);line-height:1.4;min-height:48px}
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 14px;width:100%;max-width:100%;outline:none;transition:border-color .2s;box-shadow:inset 0 1px 2px rgba(0,0,0,.03);line-height:1.4;min-height:48px;box-sizing:border-box}
+input[type="date"],input[type="number"]{-webkit-appearance:none;appearance:none}
 input:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:50px}
 
@@ -49,7 +50,7 @@ textarea{resize:vertical;min-height:50px}
 .main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
 .main::-webkit-scrollbar{width:3px}
 .main::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
-.page{display:none;padding:16px;padding-bottom:20px;animation:fadeUp .25s ease}
+.page{display:none;padding:16px;padding-bottom:20px;animation:fadeUp .25s ease;overflow-x:hidden}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
