@@ -27,7 +27,7 @@
 html,body{height:100%;overflow:hidden;background:var(--bg)}
 body{font-family:var(--font-ja);color:var(--text);-webkit-tap-highlight-color:transparent}
 button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
-input,select,textarea{font-family:inherit;font-size:15px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;width:100%;outline:none;transition:border-color .2s;box-shadow:inset 0 1px 2px rgba(0,0,0,.03)}
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px 14px;width:100%;outline:none;transition:border-color .2s;box-shadow:inset 0 1px 2px rgba(0,0,0,.03);line-height:1.4;min-height:48px}
 input:focus,textarea:focus{border-color:var(--accent)}
 textarea{resize:vertical;min-height:50px}
 
@@ -53,8 +53,8 @@ textarea{resize:vertical;min-height:50px}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:var(--shadow)}
-.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-en);margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 16px 8px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;font-family:var(--font-en);margin-bottom:16px;display:flex;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
 .card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--gold)}
 
 .form-group{margin-bottom:14px}
@@ -73,10 +73,10 @@ textarea{resize:vertical;min-height:50px}
 .stamp-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--bg3)}
 .stamp-avatar{width:40px;height:40px;border-radius:50%;background:var(--gold-bg);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold);font-size:14px;flex-shrink:0;position:relative}
 .stamp-rank{position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;background:var(--gold-solid);color:#fff;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;font-family:var(--font-en)}
-.stamp-info{flex:1;min-width:0}
-.stamp-name{font-weight:600;font-size:14px}
+.stamp-info{flex:1;min-width:0;overflow:hidden}
+.stamp-name{font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stamp-count{font-family:var(--font-en);font-size:13px;color:var(--gold);font-weight:700}
-.stamp-next{font-size:11px;color:var(--text3);margin-top:2px}
+.stamp-next{font-size:11px;color:var(--text3);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .stamp-bar{height:6px;background:var(--bg3);border-radius:3px;margin-top:6px;overflow:hidden}
 .stamp-bar-fill{height:100%;border-radius:3px;transition:width .5s ease}
 .stamp-bar-fill.t1{background:var(--green)}
