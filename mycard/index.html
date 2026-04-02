@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#faf6f0">
+<title>IGNAS スタンプカード</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#faf6f0;--bg2:#ffffff;--bg3:#f0ebe3;--bg4:#e5ddd5;
+  --text:#2a2520;--text2:#6b6560;--text3:#9e9890;
+  --accent:#e86430;--accent-bg:rgba(232,100,48,0.08);
+  --gold:#c08820;--gold-bg:rgba(192,136,32,0.10);--gold-solid:#f0c040;
+  --green:#3dba6d;--green-bg:rgba(61,186,109,0.08);
+  --border:#e0d8d0;--radius:16px;--radius-sm:10px;
+}
+html{background:var(--bg)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN',Meiryo,sans-serif;color:var(--text);min-height:100vh;max-width:420px;margin:0 auto;padding:20px 16px 40px;-webkit-tap-highlight-color:transparent}
+
+.header{text-align:center;margin-bottom:24px}
+.header-logo{font-size:12px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase}
+.header h1{font-size:20px;font-weight:800;margin-top:4px}
+
+/* Stamp Card */
+.stamp-card{background:linear-gradient(135deg,#fffdf8,#f5efe5);border:2.5px solid var(--gold-solid);border-radius:var(--radius);padding:24px 20px;text-align:center;position:relative;overflow:hidden;box-shadow:0 6px 30px rgba(192,136,32,.12)}
+.stamp-card::before{content:'';position:absolute;top:-50%;left:-50%;width:200%;height:200%;background:radial-gradient(circle,rgba(240,192,64,.06) 0%,transparent 60%);pointer-events:none}
+.card-label{font-size:12px;color:var(--gold);font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.card-name{font-size:22px;font-weight:800;margin-top:6px}
+.card-count{font-size:48px;font-weight:800;color:var(--gold);margin:16px 0 4px;font-family:'DM Sans',sans-serif;line-height:1}
+.card-count-label{font-size:14px;color:var(--text2)}
+
+/* Stamp Grid */
+.stamp-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:20px 0}
+.stamp-slot{width:40px;height:40px;border-radius:50%;border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:18px;margin:0 auto;background:var(--bg);transition:all .3s}
+.stamp-slot.filled{border:2px solid var(--gold-solid);background:var(--gold-bg);animation:stampIn .4s ease}
+.stamp-slot.milestone{border-color:var(--accent);border-style:solid;border-width:2.5px}
+.stamp-slot.milestone.filled{background:var(--accent-bg)}
+@keyframes stampIn{from{transform:scale(0) rotate(-20deg)}to{transform:scale(1) rotate(0)}}
+
+/* Progress */
+.progress-section{margin-top:20px}
+.progress-next{font-size:13px;color:var(--text2);margin-bottom:8px}
+.progress-next strong{color:var(--gold)}
+.progress-bar{height:10px;background:var(--bg3);border-radius:5px;overflow:hidden}
+.progress-fill{height:100%;border-radius:5px;background:linear-gradient(90deg,var(--gold-solid),#f0d060);transition:width 1s .3s cubic-bezier(.4,0,.2,1)}
+
+/* Milestones */
+.milestones{margin-top:24px}
+.milestone-item{display:flex;align-items:center;gap:12px;padding:14px;background:var(--bg2);border:1.5px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+.milestone-emoji{font-size:28px;flex-shrink:0}
+.milestone-info{flex:1}
+.milestone-name{font-weight:600;font-size:14px}
+.milestone-req{font-size:12px;color:var(--gold);font-weight:600}
+.milestone-status{font-size:11px;color:var(--text3);margin-top:2px}
+.milestone-item.reached{border-color:var(--green);background:var(--green-bg)}
+.milestone-item.reached .milestone-status{color:var(--green);font-weight:600}
+.milestone-item.redeemed{opacity:.6}
+.milestone-item.redeemed .milestone-status{color:var(--text3)}
+
+/* Message */
+.message{text-align:center;margin-top:20px;padding:16px;background:var(--bg2);border-radius:var(--radius-sm);border:1px solid var(--border)}
+.message p{font-size:13px;color:var(--text2);line-height:1.7}
+
+/* Error */
+.error-page{text-align:center;padding:60px 20px}
+.error-page .emoji{font-size:48px;margin-bottom:16px}
+.error-page h2{font-size:18px;margin-bottom:8px}
+.error-page p{font-size:14px;color:var(--text2);line-height:1.7}
+
+/* Footer */
+.footer{text-align:center;margin-top:32px;font-size:11px;color:var(--text3)}
+
+/* Animation */
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.animate{animation:fadeUp .5s ease both}
+.delay1{animation-delay:.1s}
+.delay2{animation-delay:.2s}
+.delay3{animation-delay:.3s}
+</style>
+</head>
+<body>
+
+<div id="content"></div>
+
+<script>
+function init() {
+  const params = new URLSearchParams(window.location.search);
+  const name = params.get('name') || '';
+  const total = parseInt(params.get('stamps')) || 0;
+  const redeemed = (params.get('redeemed') || '').split(',').filter(Boolean);
+
+  // Milestones (can be customized via URL params too)
+  const milestones = [
+    { id: 'ms1', required: parseInt(params.get('m1')) || 5, name: params.get('m1n') || 'スタバチケット', emoji: '☕' },
+    { id: 'ms2', required: parseInt(params.get('m2')) || 15, name: params.get('m2n') || 'ディズニーチケット', emoji: '🏰' },
+    { id: 'ms3', required: parseInt(params.get('m3')) || 30, name: params.get('m3n') || '国内旅行', emoji: '✈️' }
+  ];
+
+  if (!name) {
+    document.getElementById('content').innerHTML = `
+      <div class="error-page">
+        <div class="emoji">🔗</div>
+        <h2>リンクが正しくありません</h2>
+        <p>管理者から共有されたリンクで<br>アクセスしてください。</p>
+      </div>`;
+    return;
+  }
+
+  const maxStamp = milestones[milestones.length - 1].required;
+  const next = milestones.find(m => m.required > total);
+  const pctBase = next ? milestones.filter(m => m.required <= total).pop() : null;
+  const base = pctBase ? pctBase.required : 0;
+  const target = next ? next.required : maxStamp;
+  const pct = next ? Math.round((total - base) / (target - base) * 100) : 100;
+
+  // Build stamp grid
+  let gridHTML = '';
+  for (let i = 1; i <= maxStamp; i++) {
+    const filled = i <= total;
+    const isMilestone = milestones.some(m => m.required === i);
+    const msObj = milestones.find(m => m.required === i);
+    const delay = filled ? `style="animation-delay:${Math.min(i * 0.03, 0.9)}s"` : '';
+    gridHTML += `<div class="stamp-slot ${filled ? 'filled' : ''} ${isMilestone ? 'milestone' : ''}" ${delay}>${
+      filled ? (isMilestone ? msObj.emoji : '★') : (isMilestone ? msObj.emoji : '')
+    }</div>`;
+  }
+
+  // Build milestones list
+  const msHTML = milestones.map(m => {
+    const reached = total >= m.required;
+    const isRedeemed = redeemed.includes(m.id);
+    const status = isRedeemed ? '✅ 交換済み' : reached ? '🎁 交換可能！管理者に連絡してね' : `あと${m.required - total}個`;
+    const cls = isRedeemed ? 'redeemed' : reached ? 'reached' : '';
+    return `<div class="milestone-item ${cls}">
+      <div class="milestone-emoji">${m.emoji}</div>
+      <div class="milestone-info">
+        <div class="milestone-name">${m.name}</div>
+        <div class="milestone-req">★${m.required}スタンプ</div>
+        <div class="milestone-status">${status}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Encouragement message
+  let msg = '';
+  if (total === 0) {
+    msg = '最初のスタンプを目指してがんばりましょう！🔥';
+  } else if (next) {
+    msg = `次の「${next.emoji} ${next.name}」まであと<strong>${next.required - total}個</strong>！<br>引き続きよろしくお願いします 💪`;
+  } else {
+    msg = '🏆 全マイルストーン達成！素晴らしい！<br>いつもありがとうございます！';
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="header animate">
+      <div class="header-logo">IGNAS Holdings</div>
+      <h1>スタンプカード</h1>
+    </div>
+
+    <div class="stamp-card animate delay1">
+      <div class="card-label">IGNAS STAMP CARD</div>
+      <div class="card-name">${name} さん</div>
+      <div class="card-count">${total}</div>
+      <div class="card-count-label">スタンプ</div>
+      <div class="stamp-grid">${gridHTML}</div>
+      ${next ? `
+      <div class="progress-section">
+        <div class="progress-next">次：<strong>${next.emoji} ${next.name}</strong>（★${next.required}）</div>
+        <div class="progress-bar"><div class="progress-fill" id="pbar"></div></div>
+      </div>` : '<div style="color:var(--green);font-weight:700;font-size:14px;margin-top:8px">🎉 全達成！おめでとうございます！</div>'}
+    </div>
+
+    <div class="milestones animate delay2">${msHTML}</div>
+
+    <div class="message animate delay3"><p>${msg}</p></div>
+
+    <div class="footer">IGNAS Holdings © 2026</div>
+  `;
+
+  // Animate progress bar
+  if (next) {
+    setTimeout(() => {
+      document.getElementById('pbar').style.width = pct + '%';
+    }, 500);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
