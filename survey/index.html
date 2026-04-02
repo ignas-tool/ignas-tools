@@ -196,29 +196,38 @@ let staffId = '';
 let surveyDate = '';
 let staffName = '';
 
+// ========== GAS API ==========
+const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
+let _staffList=[];
+
+async function apiCall(action,sheet,data,id){
+  try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}catch(e){return{error:e.message}}
+}
+
 // ========== Init ==========
-function init() {
+async function init() {
   const params = new URLSearchParams(window.location.search);
   staffId = params.get('staff') || '';
   surveyDate = params.get('date') || new Date().toISOString().slice(0,10);
 
-  // Look up staff name from localStorage (shared with Phase 1-A)
+  // Load staff list from API
+  try {
+    _staffList = await (await fetch(API_URL+'?action=getAll&sheet=スタッフマスター')).json();
+    if (_staffList.error) _staffList = [];
+  } catch {
+    try { _staffList = JSON.parse(localStorage.getItem('ignas_staffList') || '[]'); } catch { _staffList = []; }
+  }
+
   if (staffId) {
-    try {
-      const staffList = JSON.parse(localStorage.getItem('ignas_staffList') || '[]');
-      const found = staffList.find(s => s.id === staffId);
-      if (found) {
-        staffName = found.name;
-        document.getElementById('staff-name-display').textContent = found.name + 'さん';
-      } else {
-        document.getElementById('staff-name-display').textContent = '稼働日: ' + formatDate(surveyDate);
-      }
-    } catch {
+    const found = _staffList.find(s => s.id === staffId);
+    if (found) {
+      staffName = found.name;
+      document.getElementById('staff-name-display').textContent = found.name + 'さん';
+    } else {
       document.getElementById('staff-name-display').textContent = '稼働日: ' + formatDate(surveyDate);
     }
     document.getElementById('staff-select-section').style.display = 'none';
   } else {
-    // No staff ID in URL - show name selector
     document.getElementById('staff-name-display').textContent = '稼働日: ' + formatDate(surveyDate);
     document.getElementById('staff-select-section').style.display = 'block';
     populateStaffSelect();
@@ -227,7 +236,6 @@ function init() {
   generateDateOptions();
   updateProgress();
 
-  // Character count
   document.getElementById('inp-issues').addEventListener('input', function() {
     document.getElementById('char-count').textContent = this.value.length;
     updateProgress();
@@ -235,22 +243,19 @@ function init() {
 }
 
 function populateStaffSelect() {
-  try {
-    const staffList = JSON.parse(localStorage.getItem('ignas_staffList') || '[]');
-    const sel = document.getElementById('staff-select');
-    sel.innerHTML = '<option value="">-- 名前を選択 --</option>' + staffList.map(s =>
-      '<option value="' + s.id + '">' + s.name + '</option>'
-    ).join('');
-    sel.addEventListener('change', function() {
-      staffId = this.value;
-      const found = staffList.find(s => s.id === staffId);
-      if (found) {
-        staffName = found.name;
-        document.getElementById('staff-name-display').textContent = found.name + 'さん';
-      }
-      updateProgress();
-    });
-  } catch {}
+  const sel = document.getElementById('staff-select');
+  sel.innerHTML = '<option value="">-- 名前を選択 --</option>' + _staffList.map(s =>
+    '<option value="' + s.id + '">' + s.name + '</option>'
+  ).join('');
+  sel.addEventListener('change', function() {
+    staffId = this.value;
+    const found = _staffList.find(s => s.id === staffId);
+    if (found) {
+      staffName = found.name;
+      document.getElementById('staff-name-display').textContent = found.name + 'さん';
+    }
+    updateProgress();
+  });
 }
 
 function formatDate(str) {
@@ -386,19 +391,15 @@ function submit() {
     submittedAt: new Date().toISOString()
   };
 
-  // Save to localStorage (shared with Phase 1-A)
-  try {
-    const surveys = JSON.parse(localStorage.getItem('ignas_staffSurveys') || '[]');
-    surveys.push(survey);
-    localStorage.setItem('ignas_staffSurveys', JSON.stringify(surveys));
-  } catch (e) {
-    // Offline fallback: save to separate key for later sync
+  // Save to GAS API (spreadsheet)
+  apiCall('add', 'アンケート回答', survey).catch(() => {
+    // Fallback: save to localStorage
     try {
-      const pending = JSON.parse(localStorage.getItem('ignas_pendingSurveys') || '[]');
-      pending.push(survey);
-      localStorage.setItem('ignas_pendingSurveys', JSON.stringify(pending));
+      const surveys = JSON.parse(localStorage.getItem('ignas_staffSurveys') || '[]');
+      surveys.push(survey);
+      localStorage.setItem('ignas_staffSurveys', JSON.stringify(surveys));
     } catch {}
-  }
+  });
 
   // Show thanks
   document.getElementById('form-view').style.display = 'none';
@@ -408,23 +409,22 @@ function submit() {
   showStampInfo();
 }
 
-function showStampInfo() {
+async function showStampInfo() {
   try {
-    const stamps = JSON.parse(localStorage.getItem('ignas_stamps') || '[]');
-    const milestones = JSON.parse(localStorage.getItem('ignas_milestones') || '[]');
-    if (!stamps.length || !staffId) return;
+    if (!staffId) return;
+    const stamps = await (await fetch(API_URL+'?action=getAll&sheet=スタンプ履歴')).json();
+    if (!stamps || stamps.error || !stamps.length) return;
 
-    const total = stamps.filter(s => s.staffId === staffId).reduce((sum, s) => sum + (s.count||0), 0);
+    const total = stamps.filter(s => s.staffId === staffId).reduce((sum, s) => sum + (+s.count||0), 0);
     if (total <= 0) return;
 
-    // Default milestones
-    const ms = milestones.length ? milestones : [
+    const ms = [
       {requiredStamps:5, rewardName:'スタバチケット ☕'},
       {requiredStamps:15, rewardName:'ディズニーチケット 🏰'},
       {requiredStamps:30, rewardName:'国内旅行 ✈️'}
     ];
 
-    const next = ms.filter(m => m.requiredStamps > total).sort((a,b) => a.requiredStamps - b.requiredStamps)[0];
+    const next = ms.find(m => m.requiredStamps > total);
     if (!next) return;
 
     document.getElementById('thanks-stamp').style.display = 'block';
