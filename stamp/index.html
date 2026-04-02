@@ -259,15 +259,56 @@ textarea{resize:vertical;min-height:50px}
 <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeSettingsModal()"><div class="modal"><h3>データ管理</h3><button class="btn btn-outline btn-full" onclick="exportStampCSV()" style="margin-bottom:8px">📥 スタンプ履歴CSV</button><button class="btn btn-outline btn-full" onclick="exportStaffJSON()" style="margin-bottom:8px">📥 LINE連携用JSON</button><button class="btn btn-outline btn-full btn-danger" onclick="clearStampData()">🗑 スタンプデータ削除</button><div class="modal-actions"><button class="btn btn-outline btn-full" onclick="closeSettingsModal()">閉じる</button></div></div></div>
 
 <script>
-const DB={get(k,d=[]){try{return JSON.parse(localStorage.getItem('ignas_'+k))||d}catch{return d}},set(k,v){localStorage.setItem('ignas_'+k,JSON.stringify(v))}};
-function getStaff(){return DB.get('staffList',[])}function setStaff(v){DB.set('staffList',v)}function getStamps(){return DB.get('stamps',[])}function setStamps(v){DB.set('stamps',v)}
-function getRules(){const r=DB.get('bonusRules',[]);if(!r.length){const d=[{id:'default',description:'稼働1回',stampCount:1,isActive:true,createdAt:new Date().toISOString()}];DB.set('bonusRules',d);return d}return r}function setRules(v){DB.set('bonusRules',v)}
-function getMilestones(){const m=DB.get('milestones',[]);if(!m.length){const d=[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}];DB.set('milestones',d);return d}return m}function setMilestones(v){DB.set('milestones',v)}
-function getRedemptions(){return DB.get('redemptions',[])}function setRedemptions(v){DB.set('redemptions',v)}
-function getReasons(){const r=DB.get('stampReasons',[]);if(!r.length){const d=['稼働1回','月4回以上稼働ボーナス','獲得5件以上ボーナス','新人紹介','アンケート提出'];DB.set('stampReasons',d);return d}return r}function setReasons(v){DB.set('stampReasons',v)}
+// ============================================
+// GAS API連携データレイヤー
+// ============================================
+const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
+
+let _cache={staffList:[],stamps:[],redemptions:[]};
+let _loaded=false;
+
+async function apiCall(action,sheet,data,id){
+  try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}catch(e){console.error('API Error:',e);return{error:e.message}}
+}
+
+async function loadAllData(){
+  toast('データ読み込み中...','gold');
+  try{
+    const res=await fetch(API_URL+'?action=getAllSheets');
+    const data=await res.json();
+    _cache.staffList=(data['スタッフマスター']||[]).map(r=>({...r,isPinned:r.isPinned==='TRUE'}));
+    _cache.stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
+    _cache.redemptions=data['景品交換']||[];
+    _loaded=true;
+    toast('データ読み込み完了','success');
+  }catch(e){console.error(e);toast('読み込み失敗。オフラインモード','error');
+    const DB={get(k,d){try{return JSON.parse(localStorage.getItem('ignas_'+k))||d}catch{return d}}};
+    _cache.staffList=DB.get('staffList',[]);_cache.stamps=DB.get('stamps',[]);_cache.redemptions=DB.get('redemptions',[]);
+    _loaded=true;
+  }
+}
+
+function getStaff(){return _cache.staffList}
+function getStamps(){return _cache.stamps}
+function getRedemptions(){return _cache.redemptions}
+
+// Settings stored locally (per-device)
+function getRules(){try{const r=JSON.parse(localStorage.getItem('ignas_bonusRules'));if(r&&r.length)return r}catch{}const d=[{id:'default',description:'稼働1回',stampCount:1,isActive:true}];localStorage.setItem('ignas_bonusRules',JSON.stringify(d));return d}
+function setRules(v){localStorage.setItem('ignas_bonusRules',JSON.stringify(v))}
+function getMilestones(){try{const m=JSON.parse(localStorage.getItem('ignas_milestones'));if(m&&m.length)return m}catch{}const d=[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}];localStorage.setItem('ignas_milestones',JSON.stringify(d));return d}
+function setMilestones(v){localStorage.setItem('ignas_milestones',JSON.stringify(v))}
+function getReasons(){try{const r=JSON.parse(localStorage.getItem('ignas_stampReasons'));if(r&&r.length)return r}catch{}const d=['稼働1回','月4回以上稼働ボーナス','獲得5件以上ボーナス','新人紹介','アンケート提出'];localStorage.setItem('ignas_stampReasons',JSON.stringify(d));return d}
+function setReasons(v){localStorage.setItem('ignas_stampReasons',JSON.stringify(v))}
 function renderReasonSelect(){const sel=document.getElementById('g-reason');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">-- 選択してください --</option>'+getReasons().map(r=>`<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('')}
+
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function today(){return new Date().toISOString().slice(0,10)}
 function staffTotal(sid){return getStamps().filter(s=>s.staffId===sid).reduce((a,s)=>a+(s.count||0),0)}
+
+// Async write helpers
+async function addStamp(s){_cache.stamps.push(s);await apiCall('add','スタンプ履歴',s)}
+async function addRedemption(r){_cache.redemptions.push(r);await apiCall('add','景品交換',r)}
+async function addStaffData(s){_cache.staffList.push(s);await apiCall('add','スタッフマスター',s)}
+async function updateStaffData(id,data){const i=_cache.staffList.findIndex(s=>s.id===id);if(i>=0)Object.assign(_cache.staffList[i],data);await apiCall('update','スタッフマスター',data,id)}
 
 let currentPage='dash';
 function switchPage(p){currentPage=p;document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));document.getElementById('page-'+p).classList.add('active');document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['dash','grant','staff','history','rules'][i]===p));if(p==='dash')refreshDash();if(p==='grant')initGrant();if(p==='staff')renderStaffPage();if(p==='history')renderHistory();if(p==='rules')renderRules()}
@@ -291,22 +332,22 @@ function openGrantDD(){filterGrantDD();document.getElementById('g-staff-dd').sty
 function filterGrantDD(){const q=document.getElementById('g-staff-search').value.toLowerCase(),staff=getStaff(),f=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff;document.getElementById('g-staff-dd').innerHTML=f.map(s=>`<div style="padding:10px 14px;border-bottom:1px solid var(--bg3);display:flex;justify-content:space-between;cursor:pointer" onmousedown="selectGrantStaff('${s.id}')"><span style="font-weight:500">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></div>`).join('')||'<div style="padding:14px;color:var(--text3);font-size:13px">該当なし</div>';document.getElementById('g-staff-dd').style.display='block'}
 function selectGrantStaff(id){grantStaffId=id;const s=getStaff().find(x=>x.id===id);document.getElementById('g-staff-search').value=s?s.name:'';document.getElementById('g-staff-dd').style.display='none'}
 document.addEventListener('click',e=>{if(!e.target.closest('#page-grant .form-group'))document.getElementById('g-staff-dd').style.display='none'});
-function grantSingle(){if(!grantStaffId){toast('スタッフを選択','error');return}const c=+document.getElementById('g-count').value;if(!c){toast('スタンプ数を入力','error');return}const r=document.getElementById('g-reason').value;if(!r){toast('理由を選択してください','error');return}const stamps=getStamps();stamps.push({id:genId(),staffId:grantStaffId,count:c,reason:r,date:document.getElementById('g-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);const s=getStaff().find(x=>x.id===grantStaffId),nt=staffTotal(grantStaffId);checkMilestone(grantStaffId,nt);toast(`${s?s.name:''}に★${c}付与！（計${nt}）`,'gold');document.getElementById('g-reason').value='';grantStaffId='';document.getElementById('g-staff-search').value=''}
+async function grantSingle(){if(!grantStaffId){toast('スタッフを選択','error');return}const c=+document.getElementById('g-count').value;if(!c){toast('スタンプ数を入力','error');return}const r=document.getElementById('g-reason').value;if(!r){toast('理由を選択してください','error');return}await addStamp({id:genId(),staffId:grantStaffId,count:c,reason:r,date:document.getElementById('g-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});const s=getStaff().find(x=>x.id===grantStaffId),nt=staffTotal(grantStaffId);checkMilestone(grantStaffId,nt);toast(`${s?s.name:''}に★${c}付与！（計${nt}）`,'gold');document.getElementById('g-reason').value='';grantStaffId='';document.getElementById('g-staff-search').value=''}
 function renderBulkList(){const staff=getStaff(),fbs=DB.get('feedbacks',[]),date=document.getElementById('gb-date').value,fbIds=new Set(fbs.filter(f=>f.date===date).map(f=>f.staffId));document.getElementById('bulk-staff-list').innerHTML=staff.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer"><input type="checkbox" class="bc" value="${s.id}" ${fbIds.has(s.id)?'checked':''} style="width:20px;height:20px;accent-color:var(--gold-solid)"><span style="font-weight:500;flex:1">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></label>`).join('')||'<div class="empty">スタッフを登録してください</div>'}
 document.getElementById('gb-date')?.addEventListener('change',renderBulkList);
-function grantBulk(){const c=+document.getElementById('gb-count').value||1,checks=document.querySelectorAll('.bc:checked');if(!checks.length){toast('対象を選択','error');return}const stamps=getStamps();let n=0;checks.forEach(x=>{stamps.push({id:genId(),staffId:x.value,count:c,reason:'稼働（一括）',date:document.getElementById('gb-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});n++;checkMilestone(x.value,staffTotal(x.value)+c)});setStamps(stamps);toast(`${n}名に★${c}を一括付与！`,'gold')}
+async function grantBulk(){const c=+document.getElementById('gb-count').value||1,checks=document.querySelectorAll('.bc:checked');if(!checks.length){toast('対象を選択','error');return}let n=0;for(const x of checks){await addStamp({id:genId(),staffId:x.value,count:c,reason:'稼働（一括）',date:document.getElementById('gb-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});n++;checkMilestone(x.value,staffTotal(x.value))}toast(`${n}名に★${c}を一括付与！`,'gold')}
 function checkMilestone(sid,total){getMilestones().forEach(m=>{if(total>=m.requiredStamps&&!getRedemptions().some(r=>r.staffId===sid&&r.milestoneId===m.id)){const s=getStaff().find(x=>x.id===sid);setTimeout(()=>toast(`🎉 ${s?s.name:''}が「${m.rewardEmoji} ${m.rewardName}」に到達！`,'gold'),500)}})}
 
 // Staff Page (with registration)
 function renderStaffPage(){const staff=getStaff(),q=(document.getElementById('staff-search').value||'').toLowerCase(),filtered=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff,sorted=filtered.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total);
 document.getElementById('staff-stamp-list').innerHTML=sorted.length?sorted.map(s=>{const ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),next=ms.find(m=>m.requiredStamps>s.total);return`<div class="stamp-item" onclick="showStaffDetail('${s.id}')"><div class="stamp-avatar">${s.name.slice(0,1)}</div><div class="stamp-info"><div class="stamp-name">${s.name} <span class="stamp-count">★${s.total}</span></div><div class="stamp-next">${next?`${next.rewardEmoji} まであと${next.requiredStamps-s.total}個`:'🎉 全達成'}</div></div><div style="display:flex;gap:4px"><button class="btn btn-gold btn-sm" onclick="event.stopPropagation();quickGrant('${s.id}')">+★</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editStaff('${s.id}')">✏️</button></div></div>`}).join(''):'<div class="empty">スタッフが登録されていません<br>「+ 追加」から登録してください</div>'}
-function quickGrant(sid){const stamps=getStamps();stamps.push({id:genId(),staffId:sid,count:1,reason:'稼働1回',date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);const s=getStaff().find(x=>x.id===sid),nt=staffTotal(sid);checkMilestone(sid,nt);toast(`${s?s.name:''}に★1付与（計${nt}）`,'gold');renderStaffPage()}
+async function quickGrant(sid){await addStamp({id:genId(),staffId:sid,count:1,reason:'稼働1回',date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});const s=getStaff().find(x=>x.id===sid),nt=staffTotal(sid);checkMilestone(sid,nt);toast(`${s?s.name:''}に★1付与（計${nt}）`,'gold');renderStaffPage()}
 
 // Add/Edit Staff Modal
 function showAddStaffModal(id){const s=id?getStaff().find(x=>x.id===id):null;document.getElementById('add-staff-title').textContent=s?'スタッフ編集':'スタッフ追加';document.getElementById('as-name').value=s?s.name:'';document.getElementById('as-line').value=s?s.lineName||'':'';document.getElementById('as-area').value=s?s.area||'':'';document.getElementById('as-start').value=s?s.startDate||'':'';document.getElementById('as-id').value=s?s.id:'';document.getElementById('add-staff-modal').classList.add('open')}
 function closeAddStaffModal(){document.getElementById('add-staff-modal').classList.remove('open')}
 function editStaff(id){showAddStaffModal(id)}
-function saveAddStaff(){const name=document.getElementById('as-name').value.trim();if(!name){toast('名前を入力','error');return}const staff=getStaff(),id=document.getElementById('as-id').value;if(id){const s=staff.find(x=>x.id===id);if(s){s.name=name;s.lineName=document.getElementById('as-line').value.trim();s.area=document.getElementById('as-area').value.trim();s.startDate=document.getElementById('as-start').value}}else staff.push({id:genId(),name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value,isPinned:false});setStaff(staff);closeAddStaffModal();renderStaffPage();toast(id?'更新しました':'追加しました','success')}
+async function saveAddStaff(){const name=document.getElementById('as-name').value.trim();if(!name){toast('名前を入力','error');return}const id=document.getElementById('as-id').value;if(id){await updateStaffData(id,{name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value})}else{await addStaffData({id:genId(),name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value,isPinned:false})}closeAddStaffModal();renderStaffPage();toast(id?'更新しました':'追加しました','success')}
 
 // Staff Detail Sheet
 function showStaffDetail(sid){const s=getStaff().find(x=>x.id===sid);if(!s)return;const total=staffTotal(sid),stamps=getStamps().filter(x=>x.staffId===sid).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),redemptions=getRedemptions().filter(r=>r.staffId===sid),maxS=ms.length?ms[ms.length-1].requiredStamps:30;
@@ -334,8 +375,8 @@ function shareStampCard(sid){
   }
 }
 function closeSheet(){document.getElementById('staff-sheet').classList.remove('open')}
-function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;const r=getRedemptions();r.push({id:genId(),staffId:sid,milestoneId:mid,redeemedAt:new Date().toISOString()});setRedemptions(r);toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}
-function revokeStamp(sid){const reason=prompt('取消理由：');if(!reason)return;const c=+prompt('取消スタンプ数（例：1）：');if(!c||c<=0)return;const stamps=getStamps();stamps.push({id:genId(),staffId:sid,count:-c,reason:'取消: '+reason,date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);toast('取消しました','error');showStaffDetail(sid)}
+async function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;await addRedemption({id:genId(),staffId:sid,milestoneId:mid,rewardName:m?m.rewardName:'',redeemedAt:new Date().toISOString()});toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}
+async function revokeStamp(sid){const reason=prompt('取消理由：');if(!reason)return;const c=+prompt('取消スタンプ数（例：1）：');if(!c||c<=0)return;await addStamp({id:genId(),staffId:sid,count:-c,reason:'取消: '+reason,date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});toast('取消しました','error');showStaffDetail(sid)}
 
 // History
 let histTab='all';
@@ -369,7 +410,8 @@ function clearStampData(){if(!confirm('スタンプデータを全て削除し�
 function downloadCSV(c,fn){const b=new Blob(['\uFEFF'+c],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click()}
 function toast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+type;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500)}
 
-refreshDash();
+async function initApp(){await loadAllData();refreshDash()}
+initApp();
 </script>
 </body>
 </html>
