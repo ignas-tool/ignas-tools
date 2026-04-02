@@ -315,8 +315,24 @@ const next=ms.find(m=>m.requiredStamps>total);
 document.getElementById('sheet-content').innerHTML=`<div class="sheet-handle"></div><div class="stamp-card-visual"><div class="stamp-card-title">IGNAS STAMP CARD</div><div class="stamp-card-name">${s.name}</div><div class="stamp-card-grid">${slots}</div><div class="stamp-card-progress">★${total} / ${maxS}</div>${next?`<div class="stamp-card-next">次の景品：${next.rewardEmoji} ${next.rewardName}（あと${next.requiredStamps-total}個）</div>`:'<div class="stamp-card-next">🎉 全マイルストーン達成！</div>'}</div>
 <div style="margin-top:16px"><div class="card-title"><span class="dot"></span>景品交換</div>${ms.map(m=>{const rd=redemptions.some(r=>r.milestoneId===m.id),can=total>=m.requiredStamps&&!rd;return`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg3)"><div><span style="font-size:18px">${m.rewardEmoji}</span> ${m.rewardName} <span style="color:var(--gold);font-size:12px">★${m.requiredStamps}</span></div>${rd?'<span style="color:var(--green);font-size:12px;font-weight:600">✓ 交換済</span>':can?`<button class="btn btn-gold btn-sm" onclick="redeem('${sid}','${m.id}')">交換</button>`:'<span style="color:var(--text3);font-size:12px">未到達</span>'}</div>`}).join('')}</div>
 <div style="margin-top:16px"><div class="card-title"><span class="dot"></span>付与履歴</div>${stamps.slice(0,15).map(st=>`<div class="log-item"><div class="log-dot ${st.count>0?'add':'remove'}"></div><div style="flex:1"><div>${st.count>0?'+':''}<strong>${st.count}</strong> ${st.reason||''}</div><div class="log-meta">${st.date||''}</div></div></div>`).join('')||'<div class="empty">履歴なし</div>'}</div>
-<div style="margin-top:16px;display:flex;gap:8px"><button class="btn btn-outline btn-full btn-danger" onclick="revokeStamp('${sid}')">取消</button><button class="btn btn-gold btn-full" onclick="closeSheet()">閉じる</button></div>`;
+<div style="margin-top:16px"><button class="btn btn-accent btn-full" onclick="shareStampCard('${sid}')" style="margin-bottom:8px">📤 スタンプカードを共有</button></div>
+<div style="display:flex;gap:8px"><button class="btn btn-outline btn-full btn-danger" onclick="revokeStamp('${sid}')">取消</button><button class="btn btn-gold btn-full" onclick="closeSheet()">閉じる</button></div>`;
 document.getElementById('staff-sheet').classList.add('open')}
+function shareStampCard(sid){
+  const s=getStaff().find(x=>x.id===sid);if(!s)return;
+  const total=staffTotal(sid);
+  const ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps);
+  const rd=getRedemptions().filter(r=>r.staffId===sid).map(r=>r.milestoneId);
+  const baseUrl='https://ignas-tool.github.io/ignas-tools/mycard/';
+  const params=new URLSearchParams({name:s.name,stamps:total,redeemed:rd.join(',')});
+  ms.forEach((m,i)=>{params.set('m'+(i+1),m.requiredStamps);params.set('m'+(i+1)+'n',m.rewardName)});
+  const url=baseUrl+'?'+params.toString();
+  if(navigator.share){
+    navigator.share({title:s.name+'さんのスタンプカード',text:'スタンプカードを確認してね！',url:url}).catch(()=>{});
+  }else{
+    navigator.clipboard.writeText(url).then(()=>toast('リンクをコピーしました','success')).catch(()=>{prompt('このURLをコピーしてください：',url)});
+  }
+}
 function closeSheet(){document.getElementById('staff-sheet').classList.remove('open')}
 function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;const r=getRedemptions();r.push({id:genId(),staffId:sid,milestoneId:mid,redeemedAt:new Date().toISOString()});setRedemptions(r);toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}
 function revokeStamp(sid){const reason=prompt('取消理由：');if(!reason)return;const c=+prompt('取消スタンプ数（例：1）：');if(!c||c<=0)return;const stamps=getStamps();stamps.push({id:genId(),staffId:sid,count:-c,reason:'取消: '+reason,date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});setStamps(stamps);toast('取消しました','error');showStaffDetail(sid)}
