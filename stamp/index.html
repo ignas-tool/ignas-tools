@@ -307,15 +307,18 @@ async function loadAllData(){
     _cache.staffList=(data['スタッフマスター']||[]).map(r=>({...r,isPinned:r.isPinned==='TRUE'}));
     _cache.stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
     _cache.redemptions=data['景品交換']||[];
-    // Load milestones from settings
+    // Load milestones and reasons from settings
     try{
       const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();
       if(settings&&!settings.error){
         const msRow=settings.find(r=>r.key==='milestones');
         if(msRow&&msRow.value){_cache.milestones=JSON.parse(msRow.value);localStorage.setItem('ignas_milestones',JSON.stringify(_cache.milestones))}
+        const rsRow=settings.find(r=>r.key==='reasons');
+        if(rsRow&&rsRow.value){_cache.reasons=JSON.parse(rsRow.value);localStorage.setItem('ignas_stampReasons',JSON.stringify(_cache.reasons))}
       }
     }catch{}
     if(!_cache.milestones){try{_cache.milestones=JSON.parse(localStorage.getItem('ignas_milestones'))}catch{}_cache.milestones=_cache.milestones||[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}]}
+    if(!_cache.reasons){try{_cache.reasons=JSON.parse(localStorage.getItem('ignas_stampReasons'))}catch{}}
     _loaded=true;
   }catch(e){console.error(e);toast('読み込み失敗','error');
     const DB={get(k,d){try{return JSON.parse(localStorage.getItem('ignas_'+k))||d}catch{return d}}};
@@ -332,10 +335,15 @@ function getRedemptions(){return _cache.redemptions}
 function getRules(){try{const r=JSON.parse(localStorage.getItem('ignas_bonusRules'));if(r&&r.length)return r}catch{}const d=[{id:'default',description:'稼働1回',stampCount:1,isActive:true}];localStorage.setItem('ignas_bonusRules',JSON.stringify(d));return d}
 function setRules(v){localStorage.setItem('ignas_bonusRules',JSON.stringify(v))}
 function getMilestones(){return _cache.milestones||[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}]}
-async function saveMilestonesToAPI(){const ms=getMilestones();await apiCall('update','設定',{key:'milestones',value:JSON.stringify(ms)},'milestones').catch(()=>{});localStorage.setItem('ignas_milestones',JSON.stringify(ms))}
-function setMilestones(v){_cache.milestones=v;localStorage.setItem('ignas_milestones',JSON.stringify(v));saveMilestonesToAPI()}
-function getReasons(){try{const r=JSON.parse(localStorage.getItem('ignas_stampReasons'));if(r&&r.length)return r}catch{}const d=['稼働1回','月4回以上稼働ボーナス','獲得5件以上ボーナス','新人紹介','アンケート提出'];localStorage.setItem('ignas_stampReasons',JSON.stringify(d));return d}
-function setReasons(v){localStorage.setItem('ignas_stampReasons',JSON.stringify(v))}
+async function saveMilestonesToAPI(){
+  const ms=getMilestones();localStorage.setItem('ignas_milestones',JSON.stringify(ms));
+  const res=await apiCall('update','設定',{key:'milestones',value:JSON.stringify(ms)},'milestones');
+  if(res&&res.error&&String(res.error).includes('not found'))await apiCall('add','設定',{key:'milestones',value:JSON.stringify(ms)});
+}
+function setMilestones(v){_cache.milestones=v;saveMilestonesToAPI()}
+function getReasons(){if(_cache.reasons&&_cache.reasons.length)return _cache.reasons;try{const r=JSON.parse(localStorage.getItem('ignas_stampReasons'));if(r&&r.length){_cache.reasons=r;return r}}catch{}_cache.reasons=['稼働1回','月4回以上稼働ボーナス','獲得5件以上ボーナス','新人紹介','アンケート提出'];return _cache.reasons}
+function setReasons(v){_cache.reasons=v;localStorage.setItem('ignas_stampReasons',JSON.stringify(v));saveReasonsToAPI()}
+async function saveReasonsToAPI(){const r=getReasons();const res=await apiCall('update','設定',{key:'reasons',value:JSON.stringify(r)},'reasons');if(res&&res.error&&String(res.error).includes('not found'))await apiCall('add','設定',{key:'reasons',value:JSON.stringify(r)})}
 function renderReasonSelect(){const sel=document.getElementById('g-reason');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">-- 選択してください --</option>'+getReasons().map(r=>`<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('')}
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function today(){return new Date().toISOString().slice(0,10)}
