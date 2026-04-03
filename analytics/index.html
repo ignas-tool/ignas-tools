@@ -108,6 +108,15 @@ body{font-family:var(--font-ja);color:var(--text);max-width:720px;margin:0 auto;
   </div>
 </div>
 
+<!-- Collection Rate -->
+<div class="section">
+  <div class="section-title"><span class="icon">📋</span>FB回収率推移</div>
+  <div class="card">
+    <div class="card-title">日別 回収率（FB提出数 ÷ アンケート提出者数）</div>
+    <div class="chart-wrap"><canvas id="chart-collection"></canvas></div>
+  </div>
+</div>
+
 <!-- Activity & Churn Risk -->
 <div class="section">
   <div class="section-title"><span class="icon">⚠️</span>稼働頻度・離職リスク分析</div>
@@ -171,6 +180,7 @@ async function init(){
 
   renderOverview();
   renderSatTrend();
+  renderCollectionRate();
   renderRiskTable();
   renderActivityChart();
   renderMetrics();
@@ -225,6 +235,35 @@ function renderSatTrend(){
     options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
       x:{ticks:{color:'#9e9890',font:{size:11}},grid:{display:false}},
       y:{min:1,max:5,ticks:{color:'#9e9890',stepSize:1,callback:v=>['','😫','😟','😐','😊','🤩'][v]||v},grid:{color:'rgba(224,216,208,.5)'}}
+    }}
+  });
+}
+
+// ========== Collection Rate ==========
+function renderCollectionRate(){
+  // Group by date: count FB records and survey submissions per day
+  const fbByDate={},svByDate={};
+  fbRecords.forEach(f=>{if(!f.date)return;fbByDate[f.date]=(fbByDate[f.date]||0)+1});
+  surveys.forEach(s=>{if(!s.date)return;svByDate[s.date]=(svByDate[s.date]||0)+1});
+
+  // Merge all dates
+  const allDates=[...new Set([...Object.keys(fbByDate),...Object.keys(svByDate)])].sort().slice(-14);
+  const labels=allDates.map(d=>{const dt=new Date(d);return(dt.getMonth()+1)+'/'+(dt.getDate())});
+  const rates=allDates.map(d=>{
+    const target=svByDate[d]||0;
+    const collected=fbByDate[d]||0;
+    if(target===0)return collected>0?100:0;
+    return Math.min(Math.round(collected/target*100),100);
+  });
+
+  const ctx=document.getElementById('chart-collection');
+  if(window._chartCollection)window._chartCollection.destroy();
+  window._chartCollection=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{label:'回収率 (%)',data:rates,borderColor:'#e86430',backgroundColor:'rgba(232,100,48,.1)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#e86430',pointBorderColor:'#fff',pointBorderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>c.raw+'%'}}},scales:{
+      x:{ticks:{color:'#9e9890',font:{size:10},maxRotation:45},grid:{display:false}},
+      y:{min:0,max:100,ticks:{color:'#9e9890',callback:v=>v+'%'},grid:{color:'rgba(224,216,208,.5)'}}
     }}
   });
 }
