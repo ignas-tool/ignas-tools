@@ -301,40 +301,81 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 <div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()"><div class="modal"><h3>設定</h3><div class="form-group"><label class="form-label">店舗リスト</label><textarea id="settings-stores" rows="4" placeholder="1行に1店舗"></textarea><div class="form-hint">各行が1つの店舗候補になります</div></div><div class="form-group"><label class="form-label">FB回収担当者リスト</label><textarea id="settings-recorders" rows="3" placeholder="1行に1名"></textarea><div class="form-hint">各行が1人の担当者になります</div></div><div class="form-group"><label class="form-label">研修タグ管理</label><textarea id="settings-tags" rows="4" placeholder="1行に1タグ"></textarea><div class="form-hint">各行が1つのタグになります</div></div><div class="form-group"><div class="toggle-row"><span style="font-size:14px">連続入力モードを既定ON</span><div class="toggle" id="toggle-continuous-default" onclick="toggleContinuousDefault()"><div class="knob"></div></div></div></div><div class="modal-actions"><button class="cancel" onclick="closeSettings()">閉じる</button><button class="confirm" onclick="saveSettings()">保存</button></div><div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn-secondary" onclick="exportAllData()" style="font-size:13px;margin-bottom:8px">📥 全データCSVエクスポート</button><button class="btn-secondary" onclick="clearAllData()" style="font-size:13px;color:var(--red);border-color:var(--red)">🗑 全データ削除</button></div></div></div>
 
+<!-- Loading Overlay -->
+<div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(250,246,240,.85);z-index:500;align-items:center;justify-content:center;flex-direction:column">
+  <div style="width:40px;height:40px;border:3px solid var(--bg4);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div id="loading-text" style="margin-top:12px;font-size:14px;color:var(--text2);font-weight:500">読み込み中...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
 <script>
 // ============================================
-// GAS API連携データレイヤー
+// GAS API連携データレイヤー（安定版）
 // ============================================
 const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
 
-// ローカルキャッシュ（API呼び出し削減）
 let _cache={staffList:[],feedbacks:[],staffSurveys:[],storeList:[],settings:{tags:['接客トーク','料金プラン','クロージング','キャンペーン理解','アプローチ'],continuousDefault:false,recorders:['澤井航'],stores:[]}};
 let _loaded=false;
+let _busy=false; // グローバル処理中フラグ
+let _writeQueue=Promise.resolve(); // 書き込みキュー
 
+// ローディング表示
+function showLoading(msg='処理中...'){
+  const el=document.getElementById('loading-overlay');
+  document.getElementById('loading-text').textContent=msg;
+  el.style.display='flex';
+}
+function hideLoading(){document.getElementById('loading-overlay').style.display='none'}
+
+// ボタン無効化（連打防止）
+function disableButtons(){document.querySelectorAll('.btn-primary,.btn-gold,.btn-full,.btn-accent,[onclick]').forEach(b=>{if(b.tagName==='BUTTON')b.disabled=true})}
+function enableButtons(){document.querySelectorAll('button[disabled]').forEach(b=>b.disabled=false)}
+
+// API呼び出し（リトライ付き）
 async function apiCall(action,sheet,data,id){
-  try{
-    const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});
-    return await res.json();
-  }catch(e){console.error('API Error:',e);return{error:e.message}}
+  for(let retry=0;retry<2;retry++){
+    try{
+      const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});
+      if(!res.ok)throw new Error('HTTP '+res.status);
+      return await res.json();
+    }catch(e){
+      if(retry===1){console.error('API Error:',e);return{error:e.message}}
+      await new Promise(r=>setTimeout(r,1000)); // 1秒待ってリトライ
+    }
+  }
+}
+
+// 書き込みをキューで順番実行（重複防止）
+function queueWrite(fn){
+  _writeQueue=_writeQueue.then(fn).catch(e=>console.error('Write error:',e));
+  return _writeQueue;
+}
+
+// 安全な書き込み操作（ローディング+連打防止+キュー）
+async function safeWrite(msg,fn){
+  if(_busy){showToast('処理中です...',false);return false}
+  _busy=true;disableButtons();showLoading(msg);
+  try{await queueWrite(fn);return true}
+  catch(e){showToast('エラーが発生しました',true);return false}
+  finally{_busy=false;enableButtons();hideLoading()}
 }
 
 async function loadAllData(){
-  showToast('データ読み込み中...');
+  showLoading('データ読み込み中...');
   try{
     const res=await fetch(API_URL+'?action=getAllSheets');
     const data=await res.json();
+    if(data.error)throw new Error(data.error);
     _cache.staffList=(data['スタッフマスター']||[]).map(r=>({...r,isPinned:r.isPinned==='TRUE'}));
     _cache.feedbacks=(data['FB記録']||[]).map(r=>({...r,overallRating:+r.overallRating||0,acquisitions:+r.acquisitions||null,hasReport:r.hasReport==='TRUE',needsFollowUp:r.needsFollowUp==='TRUE',trainingNeeds:r.trainingNeeds?String(r.trainingNeeds).split(',').filter(Boolean):[]}));
     _cache.staffSurveys=(data['アンケート回答']||[]).map(r=>({...r,satisfaction:+r.satisfaction||0}));
     _cache.storeList=data['店舗マスター']||[];
     _loaded=true;
-    showToast('データ読み込み完了');
-  }catch(e){console.error(e);showToast('データ読み込み失敗。オフラインモードで動作します',true);
-    // フォールバック：localStorageから読む
+  }catch(e){console.error(e);showToast('データ読み込み失敗',true);
     const DB={get(k,d){try{return JSON.parse(localStorage.getItem('ignas_'+k))||d}catch{return d}}};
     _cache.staffList=DB.get('staffList',[]);_cache.feedbacks=DB.get('feedbacks',[]);_cache.staffSurveys=DB.get('staffSurveys',[]);_cache.storeList=DB.get('storeList',[]);
     _loaded=true;
-  }
+  }finally{hideLoading()}
 }
 
 function getStaff(){return _cache.staffList}
@@ -349,7 +390,7 @@ async function updateStaff(id,data){const i=_cache.staffList.findIndex(s=>s.id==
 async function deleteStaff(id){_cache.staffList=_cache.staffList.filter(s=>s.id!==id);await apiCall('delete','スタッフマスター',null,id)}
 
 async function addFB(fb){_cache.feedbacks.push(fb);await apiCall('add','FB記録',{...fb,trainingNeeds:(fb.trainingNeeds||[]).join(','),hasReport:fb.hasReport,needsFollowUp:fb.needsFollowUp})}
-async function deleteFBData(id){const fb=_cache.feedbacks.find(f=>f.id===id);_cache.feedbacks=_cache.feedbacks.filter(f=>f.id!==id);await apiCall('delete','FB記録',null,id);if(fb){_cache.staffSurveys=_cache.staffSurveys.filter(s=>!(s.staffId===fb.staffId&&s.date===fb.date));const sv=_cache.staffSurveys.find(s=>s.staffId===fb.staffId&&s.date===fb.date);/* survey already removed from cache */}}
+async function deleteFBData(id){const fb=_cache.feedbacks.find(f=>f.id===id);_cache.feedbacks=_cache.feedbacks.filter(f=>f.id!==id);await apiCall('delete','FB記録',null,id);if(fb){const svMatch=_cache.staffSurveys.find(s=>s.staffId===fb.staffId&&s.date===fb.date);if(svMatch){_cache.staffSurveys=_cache.staffSurveys.filter(s=>s.id!==svMatch.id);await apiCall('delete','アンケート回答',null,svMatch.id)}}}
 
 async function addSurvey(sv){_cache.staffSurveys.push(sv);await apiCall('add','アンケート回答',sv)}
 async function deleteSurveyData(id){_cache.staffSurveys=_cache.staffSurveys.filter(s=>s.id!==id);await apiCall('delete','アンケート回答',null,id)}
@@ -384,19 +425,19 @@ function toggleFollow(){needsFollowUp=!needsFollowUp;document.getElementById('to
 function toggleCollapsible(el){el.classList.toggle('open');el.nextElementSibling.classList.toggle('open')}
 function toggleVoice(){if(!('webkitSpeechRecognition' in window)&&!('SpeechRecognition' in window)){showToast('このブラウザは音声入力非対応です',true);return}const btn=document.getElementById('voice-btn');if(recognition){recognition.stop();return}const SR=window.SpeechRecognition||window.webkitSpeechRecognition;recognition=new SR();recognition.lang='ja-JP';recognition.continuous=true;recognition.interimResults=true;btn.classList.add('recording');recognition.onresult=e=>{let t='';for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;document.getElementById('fb-issues').value=t};recognition.onend=()=>{btn.classList.remove('recording');recognition=null};recognition.onerror=()=>{btn.classList.remove('recording');recognition=null};recognition.start()}
 function toggleContinuous(){continuousMode=!continuousMode;document.getElementById('continuous-banner').style.display=continuousMode?'flex':'none'}
-async function saveFB(){if(!selectedStaffId){showToast('スタッフを選択してください',true);return}const staffMatch=getStaff().find(s=>s.id===selectedStaffId);if(!staffMatch){showToast('有効なスタッフを選択してください',true);return}if(!currentRating){showToast('感想を選択してください',true);return}const td=document.getElementById('fb-training-date').value;if(!td){showToast('研修希望日を入力してください',true);return}const recorder=document.getElementById('fb-recorder').value;if(!recorder){showToast('担当者を選択してください',true);return}const ct=document.getElementById('tag-custom').value.trim();if(ct)selectedTags.add(ct);const fb={id:genId(),staffId:selectedStaffId,date:document.getElementById('fb-date').value,store:document.getElementById('fb-store').value.trim(),overallRating:currentRating,acquisitions:+document.getElementById('fb-acq').value||null,hasReport,issues:document.getElementById('fb-issues').value.trim(),storeAtmosphere:currentAtmo,trainingNeeds:[...selectedTags],nextTrainingDate:td,adminMemo:document.getElementById('fb-memo').value.trim(),needsFollowUp,recorder:recorder,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};await addFB(fb);const o=document.getElementById('confirm-overlay');o.classList.add('show');setTimeout(()=>{o.classList.remove('show');resetForm();if(!continuousMode)switchPage('dashboard')},1000)}
+async function saveFB(){if(!selectedStaffId){showToast('スタッフを選択してください',true);return}const staffMatch=getStaff().find(s=>s.id===selectedStaffId);if(!staffMatch){showToast('有効なスタッフを選択してください',true);return}if(!currentRating){showToast('感想を選択してください',true);return}const td=document.getElementById('fb-training-date').value;if(!td){showToast('研修希望日を入力してください',true);return}const recorder=document.getElementById('fb-recorder').value;if(!recorder){showToast('担当者を選択してください',true);return}const ct=document.getElementById('tag-custom').value.trim();if(ct)selectedTags.add(ct);const fb={id:genId(),staffId:selectedStaffId,date:document.getElementById('fb-date').value,store:document.getElementById('fb-store').value.trim(),overallRating:currentRating,acquisitions:+document.getElementById('fb-acq').value||null,hasReport,issues:document.getElementById('fb-issues').value.trim(),storeAtmosphere:currentAtmo,trainingNeeds:[...selectedTags],nextTrainingDate:td,adminMemo:document.getElementById('fb-memo').value.trim(),needsFollowUp,recorder:recorder,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()};const ok=await safeWrite('FB記録を保存中...',async()=>{await addFB(fb)});if(ok){const o=document.getElementById('confirm-overlay');o.classList.add('show');setTimeout(()=>{o.classList.remove('show');resetForm();if(!continuousMode)switchPage('dashboard')},1000)}}
 function resetForm(){selectedStaffId=null;currentRating=0;currentAtmo='';selectedTags.clear();hasReport=false;needsFollowUp=false;document.getElementById('staff-search').value='';document.getElementById('fb-date').value=today();document.getElementById('fb-store').value='';document.querySelectorAll('.face-btn').forEach(b=>b.classList.remove('selected'));document.querySelectorAll('.atmo-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('fb-acq').value='';document.getElementById('toggle-report').classList.remove('on');document.getElementById('report-trust').style.display='none';document.getElementById('fb-issues').value='';document.getElementById('tag-custom').value='';document.getElementById('fb-training-date').value='';document.getElementById('fb-memo').value='';document.getElementById('toggle-follow').classList.remove('on');document.getElementById('survey-ref').style.display='none';renderTags()}
 function setHistoryFilter(f,el){historyFilter=f;document.querySelectorAll('#history-filters .filter-chip').forEach(c=>c.classList.remove('active'));if(el)el.classList.add('active');renderHistory()}
 function renderHistory(){const fbs=getFBs().sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),staff=getStaff(),q=(document.getElementById('history-search').value||'').toLowerCase();let filtered=fbs;if(historyFilter==='follow')filtered=filtered.filter(f=>f.needsFollowUp);if(historyFilter==='low')filtered=filtered.filter(f=>f.overallRating<=2);if(q)filtered=filtered.filter(f=>{const s=staff.find(st=>st.id===f.staffId);return(s&&s.name.toLowerCase().includes(q))||(f.store||'').toLowerCase().includes(q)});document.getElementById('history-list').innerHTML=filtered.length?filtered.map(f=>{const s=staff.find(st=>st.id===f.staffId);return`<div class="fb-item" onclick="showFBDetail('${f.id}')"><div class="fb-face">${faces(f.overallRating)}</div><div class="fb-info"><div class="fb-name">${s?s.name:'不明'}</div><div class="fb-meta">${f.date} · ${f.store||'—'}</div>${f.issues?`<div class="fb-issues">${f.issues}</div>`:''}<div class="fb-flags">${f.needsFollowUp?'<span class="fb-flag follow">要フォロー</span>':''}</div></div></div>`}).join(''):'<div class="empty"><p>該当する記録がありません</p></div>'}
 function showFBDetail(id){const fbs=getFBs(),fb=fbs.find(f=>f.id===id);if(!fb)return;const staff=getStaff(),s=staff.find(st=>st.id===fb.staffId);document.getElementById('detail-sheet').innerHTML=`<div class="detail-handle"></div><h3 style="font-size:18px;margin-bottom:16px">${s?s.name:'不明'} - ${fb.date}</h3><div class="detail-section"><div class="detail-label">全体の感想</div><div class="detail-value" style="font-size:32px">${faces(fb.overallRating)}</div></div><div class="detail-section"><div class="detail-label">店舗</div><div class="detail-value">${fb.store||'—'}</div></div><div class="detail-section"><div class="detail-label">店舗の雰囲気</div><div class="detail-value">${atmoLabel(fb.storeAtmosphere)}</div></div>${fb.acquisitions?`<div class="detail-section"><div class="detail-label">獲得実績</div><div class="detail-value">${fb.acquisitions}件 ${fb.hasReport?'（日報あり）':'（日報なし）'}</div></div>`:''}<div class="detail-section"><div class="detail-label">困ったこと</div><div class="detail-value">${fb.issues||'なし'}</div></div><div class="detail-section"><div class="detail-label">研修ニーズ</div><div class="detail-value">${(fb.trainingNeeds||[]).join('、')||'なし'}</div></div><div class="detail-section"><div class="detail-label">次回研修希望日</div><div class="detail-value">${fb.nextTrainingDate||'—'}</div></div>${fb.adminMemo?`<div class="detail-section"><div class="detail-label">管理者メモ</div><div class="detail-value">${fb.adminMemo}</div></div>`:''}${fb.needsFollowUp?'<div style="margin-top:8px"><span class="fb-flag follow" style="font-size:13px;padding:4px 10px">🚨 要フォロー</span></div>':''}${fb.recorder?`<div class="detail-section" style="margin-top:8px"><div class="detail-label">回収担当者</div><div class="detail-value">${fb.recorder}</div></div>`:''}<div style="margin-top:20px;display:flex;gap:8px"><button class="btn-secondary" onclick="deleteFB('${fb.id}')" style="color:var(--red);border-color:var(--red)">削除</button><button class="btn-primary" onclick="closeDetail()">閉じる</button></div>`;document.getElementById('detail-overlay').classList.add('open')}
 function closeDetail(){document.getElementById('detail-overlay').classList.remove('open')}
-async function deleteFB(id){if(!confirm('この記録を削除しますか？'))return;await deleteFBData(id);closeDetail();renderHistory();refreshDashboard();showToast('記録とアンケートを削除しました')}
-async function deleteSurvey(id){if(!confirm('このアンケート回答を削除しますか？'))return;await deleteSurveyData(id);refreshDashboard();showToast('アンケートを削除しました')}
+async function deleteFB(id){if(!confirm('この記録を削除しますか？'))return;await safeWrite('削除中...',async()=>{await deleteFBData(id)});closeDetail();renderHistory();refreshDashboard();showToast('削除しました')}
+async function deleteSurvey(id){if(!confirm('このアンケート回答を削除しますか？'))return;await safeWrite('削除中...',async()=>{await deleteSurveyData(id)});refreshDashboard();showToast('削除しました')}
 function renderStaffList(){const staff=getStaff(),fbs=getFBs(),q=(document.getElementById('staff-filter').value||'').toLowerCase(),filtered=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff;document.getElementById('staff-list').innerHTML=filtered.length?filtered.map(s=>{const c=fbs.filter(f=>f.staffId===s.id).length;return`<div class="staff-item"><div class="staff-avatar">${s.name.slice(0,1)}</div><div class="staff-detail"><div class="name">${s.isPinned?'📌 ':''}${s.name}</div><div class="sub">${s.area||'エリア未設定'} · FB ${c}件</div></div><div class="staff-actions"><button class="staff-action-btn" onclick="togglePin('${s.id}')" title="ピン留め"><svg viewBox="0 0 24 24" ${s.isPinned?'style="stroke:var(--yellow)"':''}><path d="M12 2v10l4-2v6l-4 4-4-4v-6l4 2V2z"/></svg></button><button class="staff-action-btn" onclick="editStaff('${s.id}')" title="編集"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg></button><button class="staff-action-btn" onclick="removeStaff('${s.id}')" title="削除"><svg viewBox="0 0 24 24" style="stroke:var(--red)"><path d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button></div></div>`}).join(''):'<div class="empty"><p>スタッフが登録されていません<br>「+ 追加」から登録してください</p></div>'}
 function showStaffModal(id){editingStaffId=id||null;document.getElementById('staff-modal-title').textContent=id?'スタッフ編集':'スタッフ追加';if(id){const s=getStaff().find(st=>st.id===id);if(s){document.getElementById('sm-name').value=s.name;document.getElementById('sm-line').value=s.lineName||'';document.getElementById('sm-area').value=s.area||'';document.getElementById('sm-start').value=s.startDate||'';document.getElementById('sm-id').value=s.id}}else{document.getElementById('sm-name').value='';document.getElementById('sm-line').value='';document.getElementById('sm-area').value='';document.getElementById('sm-start').value='';document.getElementById('sm-id').value=''}document.getElementById('staff-modal').classList.add('open')}
 function closeStaffModal(){document.getElementById('staff-modal').classList.remove('open')}
-async function saveStaff(){const name=document.getElementById('sm-name').value.trim();if(!name){showToast('名前を入力してください',true);return}if(editingStaffId){await updateStaff(editingStaffId,{name,lineName:document.getElementById('sm-line').value.trim(),area:document.getElementById('sm-area').value.trim(),startDate:document.getElementById('sm-start').value})}else{await addStaff({id:genId(),name,lineName:document.getElementById('sm-line').value.trim(),area:document.getElementById('sm-area').value.trim(),startDate:document.getElementById('sm-start').value,isPinned:false})}closeStaffModal();renderStaffList();showToast(editingStaffId?'更新しました':'追加しました')}
-function editStaff(id){showStaffModal(id)}async function removeStaff(id){if(!confirm('このスタッフを削除しますか？'))return;await deleteStaff(id);renderStaffList();showToast('削除しました')}async function togglePin(id){const s=getStaff().find(st=>st.id===id);if(s){s.isPinned=!s.isPinned;await updateStaff(id,{isPinned:s.isPinned});renderStaffList()}}
+async function saveStaff(){const name=document.getElementById('sm-name').value.trim();if(!name){showToast('名前を入力してください',true);return}const ok=await safeWrite('スタッフを保存中...',async()=>{if(editingStaffId){await updateStaff(editingStaffId,{name,lineName:document.getElementById('sm-line').value.trim(),area:document.getElementById('sm-area').value.trim(),startDate:document.getElementById('sm-start').value})}else{await addStaff({id:genId(),name,lineName:document.getElementById('sm-line').value.trim(),area:document.getElementById('sm-area').value.trim(),startDate:document.getElementById('sm-start').value,isPinned:false})}});if(ok){closeStaffModal();renderStaffList();showToast(editingStaffId?'更新しました':'追加しました')}}
+function editStaff(id){showStaffModal(id)}async function removeStaff(id){if(!confirm('このスタッフを削除しますか？'))return;await safeWrite('削除中...',async()=>{await deleteStaff(id)});renderStaffList();showToast('削除しました')}async function togglePin(id){const s=getStaff().find(st=>st.id===id);if(s){s.isPinned=!s.isPinned;await updateStaff(id,{isPinned:s.isPinned});renderStaffList()}}
 function exportCSV(){const staff=getStaff();let csv='名前,LINE名,担当エリア,稼働開始日\n';staff.forEach(s=>csv+=`${s.name},${s.lineName||''},${s.area||''},${s.startDate||''}\n`);downloadCSV(csv,'ignas_staff.csv')}
 function exportAllData(){const fbs=getFBs(),staff=getStaff();let csv='スタッフ名,稼働日,店舗,感想,獲得数,日報,困ったこと,雰囲気,研修ニーズ,研修希望日,メモ,要フォロー,回収担当者\n';fbs.forEach(f=>{const s=staff.find(st=>st.id===f.staffId);csv+=`"${s?s.name:'不明'}","${f.date}","${f.store||''}",${f.overallRating},${f.acquisitions||''},${f.hasReport?'あり':'なし'},"${f.issues||''}","${atmoLabel(f.storeAtmosphere)}","${(f.trainingNeeds||[]).join('/')}","${f.nextTrainingDate||''}","${f.adminMemo||''}",${f.needsFollowUp?'YES':'NO'},"${f.recorder||''}"\n`});downloadCSV(csv,'ignas_fb_all.csv')}
 function downloadCSV(c,fn){const b=new Blob(['\uFEFF'+c],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=fn;a.click()}
@@ -443,16 +484,12 @@ async function saveStore(){
   if(!name){showToast('店舗名を入力してください',true);return}
   if(!channel){showToast('販路を入力してください',true);return}
   if(!area){showToast('エリアを入力してください',true);return}
-  if(editingStoreId){
-    await updateStore(editingStoreId,{name,channel,area});
-  }else{
-    await addStore({id:genId(),name,channel,area});
-  }
-  closeStoreModal();renderStoreList();refreshStoreSuggestions();showToast(editingStoreId?'更新しました':'追加しました');
+  const ok=await safeWrite('店舗を保存中...',async()=>{if(editingStoreId){await updateStore(editingStoreId,{name,channel,area})}else{await addStore({id:genId(),name,channel,area})}});
+  if(ok){closeStoreModal();renderStoreList();refreshStoreSuggestions();showToast(editingStoreId?'更新しました':'追加しました')}
 }
 
 function editStore(id){showStoreModal(id)}
-async function removeStore(id){if(!confirm('この店舗を削除しますか？'))return;await deleteStore(id);renderStoreList();refreshStoreSuggestions();showToast('削除しました')}
+async function removeStore(id){if(!confirm('この店舗を削除しますか？'))return;await safeWrite('削除中...',async()=>{await deleteStore(id)});renderStoreList();refreshStoreSuggestions();showToast('削除しました')}
 
 async function init(){
   // 設定はlocalStorageから読む（API不要）
