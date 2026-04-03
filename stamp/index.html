@@ -40,14 +40,14 @@ textarea{resize:vertical;min-height:50px}
 .header-btn:active{background:var(--bg4)}
 .header-btn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
-.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:var(--safe-bottom);box-shadow:0 -1px 4px rgba(0,0,0,.04)}
+.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:var(--safe-bottom);box-shadow:0 -1px 4px rgba(0,0,0,.04);position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:520px;margin:0 auto}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;gap:3px}
 .nav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
 .nav-item span{font-size:10px;color:var(--text3);font-weight:500;transition:color .2s}
 .nav-item.active svg{stroke:var(--gold)}
 .nav-item.active span{color:var(--gold)}
 
-.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg)}
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:70px}
 .main::-webkit-scrollbar{width:3px}
 .main::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
 .page{display:none;padding:16px;padding-bottom:20px;animation:fadeUp .25s ease;overflow-x:hidden}
@@ -171,6 +171,7 @@ textarea{resize:vertical;min-height:50px}
 <body>
 <div id="app">
   <div class="header">
+    <a href="../" style="font-size:12px;color:var(--text3);text-decoration:none">← メニュー</a>
     <h1>IGNAS <span>★</span> STAMP</h1>
     <button class="header-btn" onclick="showSettingsModal()"><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
   </div>
@@ -338,6 +339,7 @@ function setReasons(v){localStorage.setItem('ignas_stampReasons',JSON.stringify(
 function renderReasonSelect(){const sel=document.getElementById('g-reason');if(!sel)return;const cur=sel.value;sel.innerHTML='<option value="">-- 選択してください --</option>'+getReasons().map(r=>`<option value="${r}"${r===cur?' selected':''}>${r}</option>`).join('')}
 
 function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function today(){return new Date().toISOString().slice(0,10)}
+function fmtDate(d){if(!d)return'—';return String(d).replace(/T.*$/,'').replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
 function staffTotal(sid){return getStamps().filter(s=>s.staffId===sid).reduce((a,s)=>a+(s.count||0),0)}
 
 // Async write helpers
