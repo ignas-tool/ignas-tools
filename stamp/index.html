@@ -258,34 +258,60 @@ textarea{resize:vertical;min-height:50px}
 <!-- Settings Modal -->
 <div class="modal-bg" id="settings-modal" onclick="if(event.target===this)closeSettingsModal()"><div class="modal"><h3>データ管理</h3><button class="btn btn-outline btn-full" onclick="exportStampCSV()" style="margin-bottom:8px">📥 スタンプ履歴CSV</button><button class="btn btn-outline btn-full" onclick="exportStaffJSON()" style="margin-bottom:8px">📥 LINE連携用JSON</button><button class="btn btn-outline btn-full btn-danger" onclick="clearStampData()">🗑 スタンプデータ削除</button><div class="modal-actions"><button class="btn btn-outline btn-full" onclick="closeSettingsModal()">閉じる</button></div></div></div>
 
+<!-- Loading Overlay -->
+<div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(250,246,240,.85);z-index:500;align-items:center;justify-content:center;flex-direction:column">
+  <div style="width:40px;height:40px;border:3px solid var(--bg4);border-top-color:var(--gold-solid);border-radius:50%;animation:spin .8s linear infinite"></div>
+  <div id="loading-text" style="margin-top:12px;font-size:14px;color:var(--text2);font-weight:500">読み込み中...</div>
+</div>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
 <script>
 // ============================================
-// GAS API連携データレイヤー
+// GAS API連携データレイヤー（安定版）
 // ============================================
 const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
 
 let _cache={staffList:[],stamps:[],redemptions:[]};
 let _loaded=false;
+let _busy=false;
+let _writeQueue=Promise.resolve();
+
+function showLoading(msg='処理中...'){const el=document.getElementById('loading-overlay');if(el){document.getElementById('loading-text').textContent=msg;el.style.display='flex'}}
+function hideLoading(){const el=document.getElementById('loading-overlay');if(el)el.style.display='none'}
+function disableButtons(){document.querySelectorAll('button').forEach(b=>{b.dataset.wasdisabled=b.disabled;b.disabled=true})}
+function enableButtons(){document.querySelectorAll('button').forEach(b=>{if(b.dataset.wasdisabled==='false'||!b.dataset.wasdisabled)b.disabled=false})}
 
 async function apiCall(action,sheet,data,id){
-  try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}catch(e){console.error('API Error:',e);return{error:e.message}}
+  for(let retry=0;retry<2;retry++){
+    try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});if(!res.ok)throw new Error('HTTP '+res.status);return await res.json()}
+    catch(e){if(retry===1){console.error('API Error:',e);return{error:e.message}}await new Promise(r=>setTimeout(r,1000))}
+  }
+}
+
+function queueWrite(fn){_writeQueue=_writeQueue.then(fn).catch(e=>console.error(e));return _writeQueue}
+
+async function safeWrite(msg,fn){
+  if(_busy){toast('処理中です...','gold');return false}
+  _busy=true;disableButtons();showLoading(msg);
+  try{await queueWrite(fn);return true}catch(e){toast('エラーが発生しました','error');return false}
+  finally{_busy=false;enableButtons();hideLoading()}
 }
 
 async function loadAllData(){
-  toast('データ読み込み中...','gold');
+  showLoading('データ読み込み中...');
   try{
     const res=await fetch(API_URL+'?action=getAllSheets');
     const data=await res.json();
+    if(data.error)throw new Error(data.error);
     _cache.staffList=(data['スタッフマスター']||[]).map(r=>({...r,isPinned:r.isPinned==='TRUE'}));
     _cache.stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
     _cache.redemptions=data['景品交換']||[];
     _loaded=true;
-    toast('データ読み込み完了','success');
-  }catch(e){console.error(e);toast('読み込み失敗。オフラインモード','error');
+  }catch(e){console.error(e);toast('読み込み失敗','error');
     const DB={get(k,d){try{return JSON.parse(localStorage.getItem('ignas_'+k))||d}catch{return d}}};
     _cache.staffList=DB.get('staffList',[]);_cache.stamps=DB.get('stamps',[]);_cache.redemptions=DB.get('redemptions',[]);
     _loaded=true;
-  }
+  }finally{hideLoading()}
 }
 
 function getStaff(){return _cache.staffList}
@@ -332,22 +358,22 @@ function openGrantDD(){filterGrantDD();document.getElementById('g-staff-dd').sty
 function filterGrantDD(){const q=document.getElementById('g-staff-search').value.toLowerCase(),staff=getStaff(),f=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff;document.getElementById('g-staff-dd').innerHTML=f.map(s=>`<div style="padding:10px 14px;border-bottom:1px solid var(--bg3);display:flex;justify-content:space-between;cursor:pointer" onmousedown="selectGrantStaff('${s.id}')"><span style="font-weight:500">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></div>`).join('')||'<div style="padding:14px;color:var(--text3);font-size:13px">該当なし</div>';document.getElementById('g-staff-dd').style.display='block'}
 function selectGrantStaff(id){grantStaffId=id;const s=getStaff().find(x=>x.id===id);document.getElementById('g-staff-search').value=s?s.name:'';document.getElementById('g-staff-dd').style.display='none'}
 document.addEventListener('click',e=>{if(!e.target.closest('#page-grant .form-group'))document.getElementById('g-staff-dd').style.display='none'});
-async function grantSingle(){if(!grantStaffId){toast('スタッフを選択','error');return}const c=+document.getElementById('g-count').value;if(!c){toast('スタンプ数を入力','error');return}const r=document.getElementById('g-reason').value;if(!r){toast('理由を選択してください','error');return}await addStamp({id:genId(),staffId:grantStaffId,count:c,reason:r,date:document.getElementById('g-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});const s=getStaff().find(x=>x.id===grantStaffId),nt=staffTotal(grantStaffId);checkMilestone(grantStaffId,nt);toast(`${s?s.name:''}に★${c}付与！（計${nt}）`,'gold');document.getElementById('g-reason').value='';grantStaffId='';document.getElementById('g-staff-search').value=''}
+async function grantSingle(){if(!grantStaffId){toast('スタッフを選択','error');return}const c=+document.getElementById('g-count').value;if(!c){toast('スタンプ数を入力','error');return}const r=document.getElementById('g-reason').value;if(!r){toast('理由を選択してください','error');return}const ok=await safeWrite('スタンプ付与中...',async()=>{await addStamp({id:genId(),staffId:grantStaffId,count:c,reason:r,date:document.getElementById('g-date').value,grantedBy:'admin',createdAt:new Date().toISOString()})});if(ok){const s=getStaff().find(x=>x.id===grantStaffId),nt=staffTotal(grantStaffId);checkMilestone(grantStaffId,nt);toast(`${s?s.name:''}に★${c}付与！（計${nt}）`,'gold');document.getElementById('g-reason').value='';grantStaffId='';document.getElementById('g-staff-search').value=''}}
 function renderBulkList(){const staff=getStaff(),fbs=DB.get('feedbacks',[]),date=document.getElementById('gb-date').value,fbIds=new Set(fbs.filter(f=>f.date===date).map(f=>f.staffId));document.getElementById('bulk-staff-list').innerHTML=staff.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer"><input type="checkbox" class="bc" value="${s.id}" ${fbIds.has(s.id)?'checked':''} style="width:20px;height:20px;accent-color:var(--gold-solid)"><span style="font-weight:500;flex:1">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></label>`).join('')||'<div class="empty">スタッフを登録してください</div>'}
 document.getElementById('gb-date')?.addEventListener('change',renderBulkList);
-async function grantBulk(){const c=+document.getElementById('gb-count').value||1,checks=document.querySelectorAll('.bc:checked');if(!checks.length){toast('対象を選択','error');return}let n=0;for(const x of checks){await addStamp({id:genId(),staffId:x.value,count:c,reason:'稼働（一括）',date:document.getElementById('gb-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});n++;checkMilestone(x.value,staffTotal(x.value))}toast(`${n}名に★${c}を一括付与！`,'gold')}
+async function grantBulk(){const c=+document.getElementById('gb-count').value||1,checks=document.querySelectorAll('.bc:checked');if(!checks.length){toast('対象を選択','error');return}const ok=await safeWrite('一括付与中...',async()=>{for(const x of checks){await addStamp({id:genId(),staffId:x.value,count:c,reason:'稼働（一括）',date:document.getElementById('gb-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});checkMilestone(x.value,staffTotal(x.value))}});if(ok)toast(`${checks.length}名に★${c}を一括付与！`,'gold')}
 function checkMilestone(sid,total){getMilestones().forEach(m=>{if(total>=m.requiredStamps&&!getRedemptions().some(r=>r.staffId===sid&&r.milestoneId===m.id)){const s=getStaff().find(x=>x.id===sid);setTimeout(()=>toast(`🎉 ${s?s.name:''}が「${m.rewardEmoji} ${m.rewardName}」に到達！`,'gold'),500)}})}
 
 // Staff Page (with registration)
 function renderStaffPage(){const staff=getStaff(),q=(document.getElementById('staff-search').value||'').toLowerCase(),filtered=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff,sorted=filtered.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total);
 document.getElementById('staff-stamp-list').innerHTML=sorted.length?sorted.map(s=>{const ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),next=ms.find(m=>m.requiredStamps>s.total);return`<div class="stamp-item" onclick="showStaffDetail('${s.id}')"><div class="stamp-avatar">${s.name.slice(0,1)}</div><div class="stamp-info"><div class="stamp-name">${s.name} <span class="stamp-count">★${s.total}</span></div><div class="stamp-next">${next?`${next.rewardEmoji} まであと${next.requiredStamps-s.total}個`:'🎉 全達成'}</div></div><div style="display:flex;gap:4px"><button class="btn btn-gold btn-sm" onclick="event.stopPropagation();quickGrant('${s.id}')">+★</button><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();editStaff('${s.id}')">✏️</button></div></div>`}).join(''):'<div class="empty">スタッフが登録されていません<br>「+ 追加」から登録してください</div>'}
-async function quickGrant(sid){await addStamp({id:genId(),staffId:sid,count:1,reason:'稼働1回',date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});const s=getStaff().find(x=>x.id===sid),nt=staffTotal(sid);checkMilestone(sid,nt);toast(`${s?s.name:''}に★1付与（計${nt}）`,'gold');renderStaffPage()}
+async function quickGrant(sid){const ok=await safeWrite('付与中...',async()=>{await addStamp({id:genId(),staffId:sid,count:1,reason:'稼働1回',date:today(),grantedBy:'admin',createdAt:new Date().toISOString()})});if(ok){const s=getStaff().find(x=>x.id===sid),nt=staffTotal(sid);checkMilestone(sid,nt);toast(`${s?s.name:''}に★1付与（計${nt}）`,'gold');renderStaffPage()}}
 
 // Add/Edit Staff Modal
 function showAddStaffModal(id){const s=id?getStaff().find(x=>x.id===id):null;document.getElementById('add-staff-title').textContent=s?'スタッフ編集':'スタッフ追加';document.getElementById('as-name').value=s?s.name:'';document.getElementById('as-line').value=s?s.lineName||'':'';document.getElementById('as-area').value=s?s.area||'':'';document.getElementById('as-start').value=s?s.startDate||'':'';document.getElementById('as-id').value=s?s.id:'';document.getElementById('add-staff-modal').classList.add('open')}
 function closeAddStaffModal(){document.getElementById('add-staff-modal').classList.remove('open')}
 function editStaff(id){showAddStaffModal(id)}
-async function saveAddStaff(){const name=document.getElementById('as-name').value.trim();if(!name){toast('名前を入力','error');return}const id=document.getElementById('as-id').value;if(id){await updateStaffData(id,{name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value})}else{await addStaffData({id:genId(),name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value,isPinned:false})}closeAddStaffModal();renderStaffPage();toast(id?'更新しました':'追加しました','success')}
+async function saveAddStaff(){const name=document.getElementById('as-name').value.trim();if(!name){toast('名前を入力','error');return}const id=document.getElementById('as-id').value;const ok=await safeWrite('保存中...',async()=>{if(id){await updateStaffData(id,{name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value})}else{await addStaffData({id:genId(),name,lineName:document.getElementById('as-line').value.trim(),area:document.getElementById('as-area').value.trim(),startDate:document.getElementById('as-start').value,isPinned:false})}});if(ok){closeAddStaffModal();renderStaffPage();toast(id?'更新しました':'追加しました','success')}}
 
 // Staff Detail Sheet
 function showStaffDetail(sid){const s=getStaff().find(x=>x.id===sid);if(!s)return;const total=staffTotal(sid),stamps=getStamps().filter(x=>x.staffId===sid).sort((a,b)=>(b.createdAt||'').localeCompare(a.createdAt||'')),ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps),redemptions=getRedemptions().filter(r=>r.staffId===sid),maxS=ms.length?ms[ms.length-1].requiredStamps:30;
@@ -375,8 +401,8 @@ function shareStampCard(sid){
   }
 }
 function closeSheet(){document.getElementById('staff-sheet').classList.remove('open')}
-async function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;await addRedemption({id:genId(),staffId:sid,milestoneId:mid,rewardName:m?m.rewardName:'',redeemedAt:new Date().toISOString()});toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}
-async function revokeStamp(sid){const reason=prompt('取消理由：');if(!reason)return;const c=+prompt('取消スタンプ数（例：1）：');if(!c||c<=0)return;await addStamp({id:genId(),staffId:sid,count:-c,reason:'取消: '+reason,date:today(),grantedBy:'admin',createdAt:new Date().toISOString()});toast('取消しました','error');showStaffDetail(sid)}
+async function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;const ok=await safeWrite('交換記録中...',async()=>{await addRedemption({id:genId(),staffId:sid,milestoneId:mid,rewardName:m?m.rewardName:'',redeemedAt:new Date().toISOString()})});if(ok){toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}}
+async function revokeStamp(sid){const reason=prompt('取消理由：');if(!reason)return;const c=+prompt('取消スタンプ数（例：1）：');if(!c||c<=0)return;const ok=await safeWrite('取消中...',async()=>{await addStamp({id:genId(),staffId:sid,count:-c,reason:'取消: '+reason,date:today(),grantedBy:'admin',createdAt:new Date().toISOString()})});if(ok){toast('取消しました','error');showStaffDetail(sid)}}
 
 // History
 let histTab='all';
