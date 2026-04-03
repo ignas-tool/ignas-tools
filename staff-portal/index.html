@@ -153,13 +153,18 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 <div id="select-screen" class="select-screen" style="display:none">
   <div class="header-logo">IGNAS Holdings</div>
   <h2>スタッフポータル</h2>
-  <p>名前を選択してください</p>
+  <p>名前を選択してPINコードを入力してください</p>
   <select id="staff-select"><option value="">-- 選択 --</option></select>
-  <div style="margin-top:16px"><button class="btn-primary" style="max-width:300px" onclick="enterPortal()">ログイン</button></div>
+  <div style="margin-top:12px;position:relative;max-width:300px;width:100%">
+    <input type="password" id="pin-input" placeholder="4桁PINコード" maxlength="4" inputmode="numeric" style="text-align:center;font-size:20px;letter-spacing:12px;font-weight:700">
+  </div>
+  <div id="pin-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none">PINコードが正しくありません</div>
+  <div style="margin-top:14px;width:100%;max-width:300px"><button class="btn-primary" onclick="enterPortal()">ログイン</button></div>
+  <div style="margin-top:20px;font-size:11px;color:var(--text3);line-height:1.6">PINコードは管理者から<br>お知らせします</div>
 </div>
 
 <!-- Main App (hidden until staff selected) -->
-<div id="app" style="display:none;flex:1;display:flex;flex-direction:column">
+<div id="app" style="display:none;flex-direction:column">
   <div class="header">
     <div class="header-logo">IGNAS</div>
     <h1>スタッフポータル</h1>
@@ -238,9 +243,20 @@ async function init(){
   // Check URL params
   const params=new URLSearchParams(location.search);
   const sid=params.get('staff');
+  const urlPin=params.get('pin');
   if(sid){
     currentStaff=staffList.find(s=>s.id===sid);
-    if(currentStaff){showApp();return}
+    if(currentStaff){
+      const staffPin=currentStaff.pin||'0000';
+      if(urlPin===staffPin){
+        showApp();return;
+      }
+      // Has staff param but no/wrong PIN - show login with staff pre-selected
+      const sel=document.getElementById('staff-select');
+      sel.innerHTML='<option value="">-- 名前を選択 --</option>'+staffList.map(s=>`<option value="${s.id}" ${s.id===sid?'selected':''}>${s.name}</option>`).join('');
+      document.getElementById('select-screen').style.display='flex';
+      return;
+    }
   }
 
   // Show select screen
@@ -252,14 +268,25 @@ async function init(){
 function enterPortal(){
   const sid=document.getElementById('staff-select').value;
   if(!sid){toast('名前を選択してください',true);return}
+  const pin=document.getElementById('pin-input').value.trim();
   currentStaff=staffList.find(s=>s.id===sid);
   if(!currentStaff){toast('スタッフが見つかりません',true);return}
+
+  // PIN check: if staff has a PIN set, require it. Default PIN is "0000" if not set.
+  const staffPin=currentStaff.pin||'0000';
+  if(pin!==staffPin){
+    document.getElementById('pin-error').style.display='block';
+    document.getElementById('pin-input').value='';
+    return;
+  }
+  document.getElementById('pin-error').style.display='none';
   document.getElementById('select-screen').style.display='none';
   showApp();
 }
 
 function showApp(){
   document.getElementById('app').style.display='flex';
+  document.getElementById('app').style.flex='1';
   document.getElementById('portal-name').textContent=currentStaff.name+'さん';
   renderStampCard();
   generateDates();
