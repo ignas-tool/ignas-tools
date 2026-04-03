@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#faf6f0">
+<title>IGNAS データ分析</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#faf6f0;--bg2:#ffffff;--bg3:#f0ebe3;--bg4:#e5ddd5;
+  --text:#2a2520;--text2:#6b6560;--text3:#9e9890;
+  --accent:#e86430;--accent-bg:rgba(232,100,48,0.08);
+  --gold:#c08820;--gold-solid:#f0c040;
+  --green:#3dba6d;--green-bg:rgba(61,186,109,0.08);
+  --blue:#4a9ede;--blue-bg:rgba(74,158,222,0.08);
+  --red:#dc4030;--red-bg:rgba(220,64,48,0.08);
+  --border:#e0d8d0;--radius:14px;--radius-sm:10px;
+  --shadow:0 2px 12px rgba(42,37,32,.06);
+  --font-ja:'Zen Kaku Gothic New',sans-serif;
+  --font-en:'DM Sans',sans-serif;
+}
+html,body{min-height:100%;background:var(--bg)}
+body{font-family:var(--font-ja);color:var(--text);max-width:720px;margin:0 auto;padding:0 0 40px}
+
+.header{padding:16px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10}
+.header h1{font-family:var(--font-en);font-size:18px;font-weight:700;color:var(--accent)}
+.header a{font-size:13px;color:var(--text3);text-decoration:none}
+
+.section{padding:16px}
+.section-title{font-size:16px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.section-title .icon{font-size:20px}
+
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card-title{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.3px;margin-bottom:16px;padding-bottom:8px;border-bottom:1px solid var(--bg3)}
+
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px}
+.stat-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 10px;text-align:center;box-shadow:var(--shadow)}
+.stat-num{font-family:var(--font-en);font-size:26px;font-weight:800;line-height:1}
+.stat-label{font-size:10px;color:var(--text3);margin-top:4px}
+
+.chart-wrap{position:relative;height:220px;margin:8px 0}
+.chart-wrap.tall{height:280px}
+
+/* Risk table */
+.risk-table{width:100%;border-collapse:collapse;font-size:13px}
+.risk-table th{text-align:left;padding:8px 6px;border-bottom:2px solid var(--border);color:var(--text2);font-size:11px;font-weight:600}
+.risk-table td{padding:10px 6px;border-bottom:1px solid var(--bg3)}
+.risk-table tr:last-child td{border-bottom:none}
+.risk-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700}
+.risk-badge.high{background:var(--red-bg);color:var(--red)}
+.risk-badge.medium{background:rgba(212,160,32,.12);color:var(--gold)}
+.risk-badge.low{background:var(--green-bg);color:var(--green)}
+
+/* Filter */
+.filter-row{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.filter-chip{padding:7px 14px;border-radius:20px;background:var(--bg2);border:1.5px solid var(--border);font-size:12px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.filter-chip.active{background:var(--accent-bg);border-color:var(--accent);color:var(--accent)}
+
+/* Staff selector */
+.staff-select{padding:10px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);background:var(--bg2);font-size:14px;width:100%;max-width:250px;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6560' fill='none' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+
+/* Loading */
+#a-loading{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(250,246,240,.9);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#a-loading .spinner{width:36px;height:36px;border:3px solid var(--bg4);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#a-loading .msg{margin-top:12px;font-size:14px;color:var(--text2)}
+
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:13px}
+</style>
+</head>
+<body>
+
+<div id="a-loading"><div class="spinner"></div><div class="msg">分析データ読み込み中...</div></div>
+
+<div class="header">
+  <h1>📊 IGNAS Analytics</h1>
+  <a href="../">← 管理メニューに戻る</a>
+</div>
+
+<div id="content" style="display:none">
+
+<!-- Overview Stats -->
+<div class="section">
+  <div class="section-title"><span class="icon">📈</span>全体サマリー</div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-num" id="total-staff" style="color:var(--accent)">0</div><div class="stat-label">登録スタッフ</div></div>
+    <div class="stat-box"><div class="stat-num" id="total-fb" style="color:var(--blue)">0</div><div class="stat-label">FB記録数</div></div>
+    <div class="stat-box"><div class="stat-num" id="avg-sat" style="color:var(--gold)">-</div><div class="stat-label">平均満足度</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-num" id="total-seats" style="color:var(--green)">0</div><div class="stat-label">着座数合計</div></div>
+    <div class="stat-box"><div class="stat-num" id="total-switch" style="color:var(--blue)">0</div><div class="stat-label">乗り換え合計</div></div>
+    <div class="stat-box"><div class="stat-num" id="active-rate" style="color:var(--green)">0%</div><div class="stat-label">アクティブ率</div></div>
+  </div>
+</div>
+
+<!-- Satisfaction Trend -->
+<div class="section">
+  <div class="section-title"><span class="icon">😊</span>スタッフ別 満足度推移</div>
+  <div class="card">
+    <select class="staff-select" id="sat-staff-select" onchange="renderSatTrend()">
+      <option value="all">全スタッフ平均</option>
+    </select>
+    <div class="chart-wrap"><canvas id="chart-sat"></canvas></div>
+  </div>
+</div>
+
+<!-- Activity & Churn Risk -->
+<div class="section">
+  <div class="section-title"><span class="icon">⚠️</span>稼働頻度・離職リスク分析</div>
+  <div class="card">
+    <div class="card-title">離職リスクスコア</div>
+    <table class="risk-table">
+      <thead><tr><th>スタッフ</th><th>直近稼働</th><th>月平均回数</th><th>満足度傾向</th><th>リスク</th></tr></thead>
+      <tbody id="risk-table-body"></tbody>
+    </table>
+  </div>
+  <div class="card">
+    <div class="card-title">月別 稼働スタッフ数推移</div>
+    <div class="chart-wrap"><canvas id="chart-activity"></canvas></div>
+  </div>
+</div>
+
+<!-- Seats & Switch -->
+<div class="section">
+  <div class="section-title"><span class="icon">💺</span>着座数・乗り換え件数</div>
+  <div class="card">
+    <div class="filter-row">
+      <button class="filter-chip active" onclick="setMetricView('weekly',this)">週別</button>
+      <button class="filter-chip" onclick="setMetricView('monthly',this)">月別</button>
+      <button class="filter-chip" onclick="setMetricView('staff',this)">スタッフ別</button>
+    </div>
+    <div class="chart-wrap tall"><canvas id="chart-metrics"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-title">スタッフ別 着座数・乗り換えランキング</div>
+    <table class="risk-table">
+      <thead><tr><th>スタッフ</th><th>着座数</th><th>乗り換え</th><th>稼働回数</th><th>着座/稼働</th></tr></thead>
+      <tbody id="metric-ranking"></tbody>
+    </table>
+  </div>
+</div>
+
+</div>
+
+<script>
+const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
+
+let staffList=[],fbRecords=[],surveys=[],stamps=[];
+let metricView='weekly';
+
+async function init(){
+  try{
+    const res=await fetch(API_URL+'?action=getAllSheets');
+    const data=await res.json();
+    staffList=data['スタッフマスター']||[];
+    fbRecords=(data['FB記録']||[]).map(r=>({...r,overallRating:+r.overallRating||0,acquisitions:+r.acquisitions||null}));
+    surveys=(data['アンケート回答']||[]).map(r=>({...r,satisfaction:+r.satisfaction||0,seats:+r.seats||0,switchCount:+r.switchCount||0}));
+    stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
+  }catch(e){console.error(e)}
+
+  document.getElementById('a-loading').style.display='none';
+  document.getElementById('content').style.display='block';
+
+  // Populate staff selects
+  const sel=document.getElementById('sat-staff-select');
+  staffList.forEach(s=>{const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o)});
+
+  renderOverview();
+  renderSatTrend();
+  renderRiskTable();
+  renderActivityChart();
+  renderMetrics();
+  renderMetricRanking();
+}
+
+// ========== Overview ==========
+function renderOverview(){
+  document.getElementById('total-staff').textContent=staffList.length;
+  document.getElementById('total-fb').textContent=fbRecords.length;
+
+  // Average satisfaction from surveys
+  const sats=surveys.filter(s=>s.satisfaction>0);
+  const avg=sats.length?Math.round(sats.reduce((a,s)=>a+s.satisfaction,0)/sats.length*10)/10:'-';
+  document.getElementById('avg-sat').textContent=avg;
+
+  // Seats & Switch totals
+  document.getElementById('total-seats').textContent=surveys.reduce((a,s)=>a+s.seats,0);
+  document.getElementById('total-switch').textContent=surveys.reduce((a,s)=>a+s.switchCount,0);
+
+  // Active rate (last 30 days)
+  const d30=new Date(Date.now()-30*86400000).toISOString().slice(0,10);
+  const activeIds=new Set(fbRecords.filter(f=>f.date>=d30).map(f=>f.staffId));
+  document.getElementById('active-rate').textContent=staffList.length?Math.round(activeIds.size/staffList.length*100)+'%':'0%';
+}
+
+// ========== Satisfaction Trend ==========
+function renderSatTrend(){
+  const sid=document.getElementById('sat-staff-select').value;
+  const allSurveys=sid==='all'?surveys:surveys.filter(s=>s.staffId===sid);
+
+  // Group by week
+  const weeks={};
+  allSurveys.forEach(s=>{
+    if(!s.date||!s.satisfaction)return;
+    const d=new Date(s.date);
+    const weekStart=new Date(d);weekStart.setDate(d.getDate()-d.getDay());
+    const key=weekStart.toISOString().slice(0,10);
+    if(!weeks[key])weeks[key]={sum:0,count:0};
+    weeks[key].sum+=s.satisfaction;weeks[key].count++;
+  });
+
+  const sorted=Object.entries(weeks).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
+  const labels=sorted.map(([k])=>{const d=new Date(k);return(d.getMonth()+1)+'/'+d.getDate()});
+  const data=sorted.map(([,v])=>Math.round(v.sum/v.count*10)/10);
+
+  const ctx=document.getElementById('chart-sat');
+  if(window._chartSat)window._chartSat.destroy();
+  window._chartSat=new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets:[{label:'満足度',data,borderColor:'#f0c040',backgroundColor:'rgba(240,192,64,.1)',fill:true,tension:.3,pointRadius:5,pointBackgroundColor:'#f0c040',pointBorderColor:'#fff',pointBorderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'#9e9890',font:{size:11}},grid:{display:false}},
+      y:{min:1,max:5,ticks:{color:'#9e9890',stepSize:1,callback:v=>['','😫','😟','😐','😊','🤩'][v]||v},grid:{color:'rgba(224,216,208,.5)'}}
+    }}
+  });
+}
+
+// ========== Risk Analysis ==========
+function renderRiskTable(){
+  const now=new Date();
+  const d30=new Date(now-30*86400000).toISOString().slice(0,10);
+  const d60=new Date(now-60*86400000).toISOString().slice(0,10);
+
+  const risks=staffList.map(s=>{
+    const myFBs=fbRecords.filter(f=>f.staffId===s.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+    const lastDate=myFBs[0]?.date||'なし';
+
+    // Monthly average (last 3 months)
+    const d90=new Date(now-90*86400000).toISOString().slice(0,10);
+    const recent=myFBs.filter(f=>f.date>=d90);
+    const monthlyAvg=recent.length?Math.round(recent.length/3*10)/10:0;
+
+    // Satisfaction trend (last 5)
+    const mySurveys=surveys.filter(sv=>sv.staffId===s.id&&sv.satisfaction>0).sort((a,b)=>(b.date||'').localeCompare(a.date||'')).slice(0,5);
+    let satTrend='—';
+    if(mySurveys.length>=2){
+      const recentAvg=mySurveys.slice(0,Math.ceil(mySurveys.length/2)).reduce((a,sv)=>a+sv.satisfaction,0)/Math.ceil(mySurveys.length/2);
+      const olderAvg=mySurveys.slice(Math.ceil(mySurveys.length/2)).reduce((a,sv)=>a+sv.satisfaction,0)/(mySurveys.length-Math.ceil(mySurveys.length/2));
+      if(recentAvg<olderAvg-0.5)satTrend='📉 低下';
+      else if(recentAvg>olderAvg+0.5)satTrend='📈 上昇';
+      else satTrend='→ 安定';
+    }
+
+    // Risk score
+    let risk=0;
+    if(lastDate<d30)risk+=2;else if(lastDate<d60)risk+=4;
+    if(monthlyAvg<2)risk+=2;
+    if(satTrend==='📉 低下')risk+=2;
+    if(mySurveys.length&&mySurveys[0].satisfaction<=2)risk+=1;
+
+    const riskLevel=risk>=4?'high':risk>=2?'medium':'low';
+    const riskLabel=risk>=4?'高':risk>=2?'中':'低';
+
+    return{name:s.name,lastDate,monthlyAvg,satTrend,riskLevel,riskLabel,risk};
+  }).sort((a,b)=>b.risk-a.risk);
+
+  document.getElementById('risk-table-body').innerHTML=risks.map(r=>`
+    <tr>
+      <td style="font-weight:600">${r.name}</td>
+      <td>${r.lastDate}</td>
+      <td>${r.monthlyAvg}回</td>
+      <td>${r.satTrend}</td>
+      <td><span class="risk-badge ${r.riskLevel}">${r.riskLabel}</span></td>
+    </tr>`).join('')||'<tr><td colspan="5" class="empty">データなし</td></tr>';
+}
+
+// ========== Activity Chart ==========
+function renderActivityChart(){
+  const months={};
+  fbRecords.forEach(f=>{
+    if(!f.date)return;
+    const m=f.date.slice(0,7);
+    if(!months[m])months[m]=new Set();
+    months[m].add(f.staffId);
+  });
+
+  const sorted=Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+  const labels=sorted.map(([k])=>{const[y,m]=k.split('-');return m+'月'});
+  const data=sorted.map(([,v])=>v.size);
+
+  const ctx=document.getElementById('chart-activity');
+  if(window._chartAct)window._chartAct.destroy();
+  window._chartAct=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[{label:'稼働スタッフ数',data,backgroundColor:'rgba(74,158,222,.5)',borderRadius:6}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{
+      x:{ticks:{color:'#9e9890',font:{size:11}},grid:{display:false}},
+      y:{ticks:{color:'#9e9890',stepSize:5},grid:{color:'rgba(224,216,208,.5)'}}
+    }}
+  });
+}
+
+// ========== Seats & Switch Metrics ==========
+function setMetricView(view,el){
+  metricView=view;
+  document.querySelectorAll('.filter-chip').forEach(c=>c.classList.remove('active'));
+  el.classList.add('active');
+  renderMetrics();
+}
+
+function renderMetrics(){
+  let labels=[],seatsData=[],switchData=[];
+
+  if(metricView==='weekly'){
+    const weeks={};
+    surveys.forEach(s=>{
+      if(!s.date)return;
+      const d=new Date(s.date);const ws=new Date(d);ws.setDate(d.getDate()-d.getDay());
+      const key=ws.toISOString().slice(0,10);
+      if(!weeks[key])weeks[key]={seats:0,sw:0};
+      weeks[key].seats+=s.seats;weeks[key].sw+=s.switchCount;
+    });
+    const sorted=Object.entries(weeks).sort((a,b)=>a[0].localeCompare(b[0])).slice(-10);
+    labels=sorted.map(([k])=>{const d=new Date(k);return(d.getMonth()+1)+'/'+d.getDate()});
+    seatsData=sorted.map(([,v])=>v.seats);
+    switchData=sorted.map(([,v])=>v.sw);
+  }else if(metricView==='monthly'){
+    const months={};
+    surveys.forEach(s=>{
+      if(!s.date)return;const m=s.date.slice(0,7);
+      if(!months[m])months[m]={seats:0,sw:0};
+      months[m].seats+=s.seats;months[m].sw+=s.switchCount;
+    });
+    const sorted=Object.entries(months).sort((a,b)=>a[0].localeCompare(b[0])).slice(-8);
+    labels=sorted.map(([k])=>{const[y,m]=k.split('-');return m+'月'});
+    seatsData=sorted.map(([,v])=>v.seats);
+    switchData=sorted.map(([,v])=>v.sw);
+  }else{
+    const staffMetrics={};
+    surveys.forEach(s=>{
+      if(!s.staffId)return;
+      if(!staffMetrics[s.staffId])staffMetrics[s.staffId]={seats:0,sw:0};
+      staffMetrics[s.staffId].seats+=s.seats;staffMetrics[s.staffId].sw+=s.switchCount;
+    });
+    const sorted=Object.entries(staffMetrics).sort((a,b)=>(b[1].seats+b[1].sw)-(a[1].seats+a[1].sw)).slice(0,15);
+    labels=sorted.map(([id])=>{const s=staffList.find(x=>x.id===id);return s?s.name:id});
+    seatsData=sorted.map(([,v])=>v.seats);
+    switchData=sorted.map(([,v])=>v.sw);
+  }
+
+  const ctx=document.getElementById('chart-metrics');
+  if(window._chartMetrics)window._chartMetrics.destroy();
+  window._chartMetrics=new Chart(ctx,{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'着座数',data:seatsData,backgroundColor:'rgba(61,186,109,.5)',borderRadius:4},
+      {label:'乗り換え',data:switchData,backgroundColor:'rgba(74,158,222,.5)',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11},usePointStyle:true,pointStyle:'rectRounded'}}},scales:{
+      x:{ticks:{color:'#9e9890',font:{size:10},maxRotation:45},grid:{display:false}},
+      y:{ticks:{color:'#9e9890'},grid:{color:'rgba(224,216,208,.5)'}}
+    }}
+  });
+}
+
+function renderMetricRanking(){
+  const staffMetrics={};
+  surveys.forEach(s=>{
+    if(!s.staffId)return;
+    if(!staffMetrics[s.staffId])staffMetrics[s.staffId]={seats:0,sw:0,count:0};
+    staffMetrics[s.staffId].seats+=s.seats;staffMetrics[s.staffId].sw+=s.switchCount;staffMetrics[s.staffId].count++;
+  });
+
+  const sorted=Object.entries(staffMetrics).sort((a,b)=>b[1].seats-a[1].seats);
+
+  document.getElementById('metric-ranking').innerHTML=sorted.map(([id,v])=>{
+    const s=staffList.find(x=>x.id===id);
+    const perWork=v.count?Math.round(v.seats/v.count*10)/10:0;
+    return`<tr>
+      <td style="font-weight:600">${s?s.name:id}</td>
+      <td>${v.seats}</td>
+      <td>${v.sw}</td>
+      <td>${v.count}回</td>
+      <td>${perWork}</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="5" class="empty">データなし</td></tr>';
+}
+
+init();
+</script>
+</body>
+</html>
