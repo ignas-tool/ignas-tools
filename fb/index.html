@@ -51,8 +51,8 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .nav-item.active span{color:var(--accent)}
 .nav-badge{position:absolute;top:4px;right:calc(50% - 18px);width:16px;height:16px;background:var(--red);border-radius:50%;font-size:9px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-en)}
 
-.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:70px}
-.page{display:none;padding:16px;padding-bottom:20px;animation:fadeUp .25s ease}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;background:var(--bg);padding-bottom:80px}
+.page{display:none;padding:16px;padding-bottom:30px;animation:fadeUp .25s ease}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
@@ -320,7 +320,9 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     <input type="hidden" id="tr-id">
     <div class="modal-actions"><button class="cancel" onclick="closeTrainingModal()">キャンセル</button><button class="confirm" onclick="saveTraining()">保存</button></div>
   </div>
-</div> onclick="if(event.target===this)closeSettings()"><div class="modal"><h3>設定</h3><div class="form-group"><label class="form-label">店舗リスト</label><textarea id="settings-stores" rows="4" placeholder="1行に1店舗"></textarea><div class="form-hint">各行が1つの店舗候補になります</div></div><div class="form-group"><label class="form-label">FB回収担当者リスト</label><textarea id="settings-recorders" rows="3" placeholder="1行に1名"></textarea><div class="form-hint">各行が1人の担当者になります</div></div><div class="form-group"><label class="form-label">研修タグ管理</label><textarea id="settings-tags" rows="4" placeholder="1行に1タグ"></textarea><div class="form-hint">各行が1つのタグになります</div></div><div class="form-group"><div class="toggle-row"><span style="font-size:14px">連続入力モードを既定ON</span><div class="toggle" id="toggle-continuous-default" onclick="toggleContinuousDefault()"><div class="knob"></div></div></div></div><div class="modal-actions"><button class="cancel" onclick="closeSettings()">閉じる</button><button class="confirm" onclick="saveSettings()">保存</button></div><div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn-secondary" onclick="exportAllData()" style="font-size:13px;margin-bottom:8px">📥 全データCSVエクスポート</button><button class="btn-secondary" onclick="clearAllData()" style="font-size:13px;color:var(--red);border-color:var(--red)">🗑 全データ削除</button></div></div></div>
+</div>
+
+<div class="modal-overlay" id="settings-modal" onclick="if(event.target===this)closeSettings()"><div class="modal"><h3>設定</h3><div class="form-group"><label class="form-label">店舗リスト</label><textarea id="settings-stores" rows="4" placeholder="1行に1店舗"></textarea><div class="form-hint">各行が1つの店舗候補になります</div></div><div class="form-group"><label class="form-label">FB回収担当者リスト</label><textarea id="settings-recorders" rows="3" placeholder="1行に1名"></textarea><div class="form-hint">各行が1人の担当者になります</div></div><div class="form-group"><label class="form-label">研修タグ管理</label><textarea id="settings-tags" rows="4" placeholder="1行に1タグ"></textarea><div class="form-hint">各行が1つのタグになります</div></div><div class="form-group"><div class="toggle-row"><span style="font-size:14px">連続入力モードを既定ON</span><div class="toggle" id="toggle-continuous-default" onclick="toggleContinuousDefault()"><div class="knob"></div></div></div></div><div class="modal-actions"><button class="cancel" onclick="closeSettings()">閉じる</button><button class="confirm" onclick="saveSettings()">保存</button></div><div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border)"><button class="btn-secondary" onclick="exportAllData()" style="font-size:13px;margin-bottom:8px">📥 全データCSVエクスポート</button><button class="btn-secondary" onclick="clearAllData()" style="font-size:13px;color:var(--red);border-color:var(--red)">🗑 全データ削除</button></div></div></div>
 
 <!-- Loading Overlay -->
 <div id="loading-overlay" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(250,246,240,.85);z-index:500;align-items:center;justify-content:center;flex-direction:column">
