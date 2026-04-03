@@ -214,7 +214,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
 
-let staffList=[],stamps=[],redemptions=[],fbRecords=[];
+let staffList=[],stamps=[],redemptions=[],fbRecords=[],milestones=[];
 let currentStaff=null;
 let svSat=0,svFit='',svTags=new Set(),svDate='',svUndecided=false;
 let _busy=false;
@@ -236,6 +236,12 @@ async function init(){
     stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
     redemptions=data['景品交換']||[];
     fbRecords=data['FB記録']||[];
+    // Load milestones from settings sheet
+    try{
+      const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();
+      if(settings&&!settings.error){const msRow=settings.find(r=>r.key==='milestones');if(msRow&&msRow.value)milestones=JSON.parse(msRow.value)}
+    }catch{}
+    if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}];
   }catch(e){console.error(e)}
 
   document.getElementById('sp-loading').style.display='none';
@@ -303,24 +309,21 @@ function switchTab(tab){
 // ========== Stamp Card ==========
 function renderStampCard(){
   const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);
-  const milestones=[
-    {id:'ms1',req:5,name:'スタバチケット',emoji:'☕'},
-    {id:'ms2',req:15,name:'ディズニーチケット',emoji:'🏰'},
-    {id:'ms3',req:30,name:'国内旅行',emoji:'✈️'}
-  ];
-  const maxS=milestones[milestones.length-1].req;
-  const next=milestones.find(m=>m.req>total);
+  const ms=milestones.map(m=>({id:m.id,req:m.requiredStamps,name:m.rewardName,emoji:m.rewardEmoji||'🎁'})).sort((a,b)=>a.req-b.req);
+  if(!ms.length)ms.push({id:'ms1',req:5,name:'スタバチケット',emoji:'☕'});
+  const maxS=ms[ms.length-1].req;
+  const next=ms.find(m=>m.req>total);
   const rd=redemptions.filter(r=>r.staffId===currentStaff.id).map(r=>r.milestoneId);
 
   let grid='';
   for(let i=1;i<=maxS;i++){
     const filled=i<=total;
-    const isMs=milestones.some(m=>m.req===i);
-    const mObj=milestones.find(m=>m.req===i);
+    const isMs=ms.some(m=>m.req===i);
+    const mObj=ms.find(m=>m.req===i);
     grid+=`<div class="stamp-slot ${filled?'filled':''} ${isMs?'ms':''}">${filled?(isMs?mObj.emoji:'★'):(isMs?mObj.emoji:'')}</div>`;
   }
 
-  const pBase=milestones.filter(m=>m.req<=total).pop();
+  const pBase=ms.filter(m=>m.req<=total).pop();
   const base=pBase?pBase.req:0;
   const target=next?next.req:maxS;
   const pct=next?Math.round((total-base)/(target-base)*100):100;
@@ -336,11 +339,11 @@ function renderStampCard(){
 
   if(next)setTimeout(()=>{const el=document.getElementById('pbar');if(el)el.style.width=pct+'%'},300);
 
-  document.getElementById('ms-list').innerHTML=milestones.map(m=>{
+  document.getElementById('ms-list').innerHTML=ms.map(m=>{
     const reached=total>=m.req;
     const redeemed=rd.includes(m.id);
     const status=redeemed?'✅ 交換済み':reached?'🎁 交換可能！管理者に連絡してね':'あと'+(m.req-total)+'個';
-    return`<div class="ms-item ${reached&&!redeemed?'reached':''}""><div class="ms-emoji">${m.emoji}</div><div class="ms-info"><div class="ms-name">${m.name} <span style="color:var(--gold);font-size:12px">★${m.req}</span></div><div class="ms-status">${status}</div></div></div>`;
+    return`<div class="ms-item ${reached&&!redeemed?'reached':''}"><div class="ms-emoji">${m.emoji}</div><div class="ms-info"><div class="ms-name">${m.name} <span style="color:var(--gold);font-size:12px">★${m.req}</span></div><div class="ms-status">${status}</div></div></div>`;
   }).join('');
 }
 
