@@ -310,7 +310,7 @@ function renderRiskTable(){
   document.getElementById('risk-table-body').innerHTML=risks.map(r=>`
     <tr>
       <td style="font-weight:600">${r.name}</td>
-      <td>${r.lastDate}</td>
+      <td>${r.lastDate.replace(/T.*$/,'')}</td>
       <td>${r.monthlyAvg}回</td>
       <td>${r.satTrend}</td>
       <td><span class="risk-badge ${r.riskLevel}">${r.riskLabel}</span></td>
