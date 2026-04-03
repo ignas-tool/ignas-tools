@@ -388,17 +388,9 @@ document.getElementById('staff-sheet').classList.add('open')}
 function shareStampCard(sid){
   const s=getStaff().find(x=>x.id===sid);if(!s)return;
   const total=staffTotal(sid);
-  const ms=getMilestones().sort((a,b)=>a.requiredStamps-b.requiredStamps);
-  const rd=getRedemptions().filter(r=>r.staffId===sid).map(r=>r.milestoneId);
-  const baseUrl='https://ignas-tool.github.io/ignas-tools/mycard/';
-  const params=new URLSearchParams({name:s.name,stamps:total,redeemed:rd.join(',')});
-  ms.forEach((m,i)=>{params.set('m'+(i+1),m.requiredStamps);params.set('m'+(i+1)+'n',m.rewardName)});
-  const url=baseUrl+'?'+params.toString();
-  if(navigator.share){
-    navigator.share({title:s.name+'さんのスタンプカード',text:'スタンプカードを確認してね！',url:url}).catch(()=>{});
-  }else{
-    navigator.clipboard.writeText(url).then(()=>toast('リンクをコピーしました','success')).catch(()=>{prompt('このURLをコピーしてください：',url)});
-  }
+  const url='https://ignas-tool.github.io/ignas-tools/staff-portal/?staff='+sid;
+  const msg=`${s.name}さんのスタンプカード ★${total}\n${url}`;
+  navigator.clipboard.writeText(msg).then(()=>toast('リンクをコピーしました！','success')).catch(()=>{prompt('このURLをコピーしてください：',url)});
 }
 function closeSheet(){document.getElementById('staff-sheet').classList.remove('open')}
 async function redeem(sid,mid){const m=getMilestones().find(x=>x.id===mid);if(!confirm(`「${m?m.rewardName:''}」を交換済みにしますか？`))return;const ok=await safeWrite('交換記録中...',async()=>{await addRedemption({id:genId(),staffId:sid,milestoneId:mid,rewardName:m?m.rewardName:'',redeemedAt:new Date().toISOString()})});if(ok){toast(`${m?m.rewardEmoji:''} ${m?m.rewardName:''} 交換完了！`,'gold');showStaffDetail(sid)}}
