@@ -31,7 +31,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .staff-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-bg);color:var(--accent);padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;margin-top:8px}
 
 /* Bottom Nav */
-.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)}
+.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:440px;margin:0 auto}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;gap:3px;transition:color .2s}
 .nav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
 .nav-item span{font-size:10px;color:var(--text3);font-weight:500;transition:color .2s}
@@ -39,7 +39,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 .nav-item.active span{color:var(--accent)}
 
 /* Main */
-.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:70px}
 .page{display:none;padding:16px;padding-bottom:24px;animation:fadeUp .3s ease}
 .page.active{display:block}
 @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
@@ -166,9 +166,11 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 <!-- Main App (hidden until staff selected) -->
 <div id="app" style="display:none;flex-direction:column">
-  <div class="header">
-    <div class="header-logo">IGNAS</div>
-    <h1>スタッフポータル</h1>
+  <div class="header" style="display:flex;align-items:center;justify-content:space-between">
+    <div>
+      <div class="header-logo">IGNAS</div>
+      <h1 style="font-size:16px">スタッフポータル</h1>
+    </div>
     <div class="staff-badge" id="portal-name">-</div>
   </div>
 
@@ -434,6 +436,8 @@ function renderTraining(){
 }
 
 // ========== Utils ==========
+function fmtDate(d){if(!d)return'—';return String(d).replace(/T.*$/,'').replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
+function fmtDate(d){if(!d)return'—';return String(d).replace(/T.*$/,'').replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
 function toast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(isError?'error':'success');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 
 init();
