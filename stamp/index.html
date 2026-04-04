@@ -186,6 +186,7 @@ textarea{resize:vertical;min-height:50px}
       </div>
       <div class="card"><div class="card-title"><span class="dot"></span>RANKING TOP 10</div><div id="ranking-list"></div></div>
       <div class="card"><div class="card-title"><span class="dot"></span>景品交換状況</div><div id="milestone-status"></div></div>
+      <div class="card"><div class="card-title"><span class="dot" style="background:var(--accent)"></span>FB完了 → スタンプ未付与</div><div id="fb-unstamped-list"></div></div>
       <div class="card"><div class="card-title"><span class="dot"></span>月別スタンプ発行</div><div class="chart-wrap"><canvas id="chart-monthly"></canvas></div></div>
     </div>
     <!-- Grant -->
@@ -272,7 +273,7 @@ textarea{resize:vertical;min-height:50px}
 // ============================================
 const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
 
-let _cache={staffList:[],stamps:[],redemptions:[]};
+let _cache={staffList:[],stamps:[],redemptions:[],fbRecords:[]};
 let _loaded=false;
 let _busy=false;
 let _writeQueue=Promise.resolve();
@@ -307,6 +308,7 @@ async function loadAllData(){
     _cache.staffList=(data['スタッフマスター']||[]).map(r=>({...r,isPinned:r.isPinned==='TRUE'}));
     _cache.stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
     _cache.redemptions=data['景品交換']||[];
+    _cache.fbRecords=(data['FB記録']||[]).map(r=>({...r,date:String(r.date||'').replace(/T.*$/,'')}));
     // Load milestones and reasons from settings
     try{
       const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();
@@ -368,7 +370,12 @@ document.getElementById('s-redeemed').textContent=redemptions.length;
 const totals=staff.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total).slice(0,10);
 document.getElementById('ranking-list').innerHTML=totals.length?totals.map((s,i)=>{const msArr=ms.sort((a,b)=>a.requiredStamps-b.requiredStamps);const next=msArr.find(m=>m.requiredStamps>s.total);const prev=msArr.filter(m=>m.requiredStamps<=s.total).pop();const base=prev?prev.requiredStamps:0;const target=next?next.requiredStamps:msArr[msArr.length-1]?.requiredStamps||30;const pct=Math.min(100,Math.round((s.total-base)/(target-base)*100));const tier=!next?'t3':next.requiredStamps<=15?'t1':next.requiredStamps<=30?'t2':'t3';return`<div class="stamp-item" onclick="showStaffDetail('${s.id}')"><div class="stamp-avatar">${s.name.slice(0,1)}${i<3?`<span class="stamp-rank">${i+1}</span>`:''}</div><div class="stamp-info"><div class="stamp-name">${s.name} <span class="stamp-count">★${s.total}</span></div><div class="stamp-next">${next?`次：${next.rewardEmoji} ${next.rewardName}まであと${next.requiredStamps-s.total}個`:'🎉 全達成！'}</div><div class="stamp-bar"><div class="stamp-bar-fill ${tier}" style="width:${pct}%"></div></div></div></div>`}).join(''):'<div class="empty">スタッフを登録してください</div>';
 document.getElementById('milestone-status').innerHTML=ms.sort((a,b)=>a.requiredStamps-b.requiredStamps).map(m=>{const ex=redemptions.filter(r=>r.milestoneId===m.id).length;const el=staff.filter(s=>staffTotal(s.id)>=m.requiredStamps).length;return`<div class="milestone"><div class="milestone-emoji">${m.rewardEmoji||'🎁'}</div><div class="milestone-info"><div class="milestone-name">${m.rewardName}</div><div class="milestone-req">★${m.requiredStamps}スタンプ</div><div class="milestone-exchanged">交換済: ${ex}名 / 到達: ${el}名</div></div></div>`}).join('');
-const monthlyData={};stamps.forEach(s=>{const m=(s.date||'').slice(0,7);if(m)monthlyData[m]=(monthlyData[m]||0)+(s.count||0)});const months=Object.keys(monthlyData).sort().slice(-6);const ctx=document.getElementById('chart-monthly');if(window.mc)window.mc.destroy();window.mc=new Chart(ctx,{type:'line',data:{labels:months.map(m=>m.split('-')[1]+'月'),datasets:[{data:months.map(m=>monthlyData[m]),borderColor:'#c08820',backgroundColor:'rgba(192,136,32,0.08)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#c08820'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6560',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#9e9890',stepSize:5},grid:{color:'rgba(224,216,208,0.5)'}}}}})}
+const monthlyData={};stamps.forEach(s=>{const m=(s.date||'').slice(0,7);if(m)monthlyData[m]=(monthlyData[m]||0)+(s.count||0)});const months=Object.keys(monthlyData).sort().slice(-6);const ctx=document.getElementById('chart-monthly');if(window.mc)window.mc.destroy();window.mc=new Chart(ctx,{type:'line',data:{labels:months.map(m=>m.split('-')[1]+'月'),datasets:[{data:months.map(m=>monthlyData[m]),borderColor:'#c08820',backgroundColor:'rgba(192,136,32,0.08)',fill:true,tension:.3,pointRadius:4,pointBackgroundColor:'#c08820'}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6b6560',font:{size:11}},grid:{display:false}},y:{ticks:{color:'#9e9890',stepSize:5},grid:{color:'rgba(224,216,208,0.5)'}}}}});
+// FB完了→スタンプ未付与リスト
+const fbDates=_cache.fbRecords.map(f=>f.staffId+'_'+f.date);
+const stampDates=stamps.map(s=>s.staffId+'_'+(s.date||'').replace(/T.*$/,''));
+const unstamped=_cache.fbRecords.filter(f=>{const key=f.staffId+'_'+f.date;return!stampDates.includes(key)}).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+document.getElementById('fb-unstamped-list').innerHTML=unstamped.length?unstamped.slice(0,20).map(f=>{const s=staff.find(x=>x.id===f.staffId);return`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg3)"><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${s?s.name:'不明'}</div><div style="font-size:11px;color:var(--text3)">${fmtDate(f.date)} · ${f.store||''}</div></div><button onclick="grantFromFB('${f.staffId}','${f.date}')" style="padding:6px 14px;border-radius:8px;background:var(--gold-solid);color:#fff;font-size:12px;font-weight:700;border:none;cursor:pointer;white-space:nowrap;flex-shrink:0">★+1</button></div>`}).join(''):'<div class="empty">すべてのFBにスタンプ付与済みです 🎉</div>'}
 
 // Grant
 let grantTab='single',grantStaffId='';
@@ -379,10 +386,18 @@ function filterGrantDD(){const q=document.getElementById('g-staff-search').value
 function selectGrantStaff(id){grantStaffId=id;const s=getStaff().find(x=>x.id===id);document.getElementById('g-staff-search').value=s?s.name:'';document.getElementById('g-staff-dd').style.display='none'}
 document.addEventListener('click',e=>{if(!e.target.closest('#page-grant .form-group'))document.getElementById('g-staff-dd').style.display='none'});
 async function grantSingle(){if(!grantStaffId){toast('スタッフを選択','error');return}const c=+document.getElementById('g-count').value;if(!c){toast('スタンプ数を入力','error');return}const r=document.getElementById('g-reason').value;if(!r){toast('理由を選択してください','error');return}const ok=await safeWrite('スタンプ付与中...',async()=>{await addStamp({id:genId(),staffId:grantStaffId,count:c,reason:r,date:document.getElementById('g-date').value,grantedBy:'admin',createdAt:new Date().toISOString()})});if(ok){const s=getStaff().find(x=>x.id===grantStaffId),nt=staffTotal(grantStaffId);checkMilestone(grantStaffId,nt);toast(`${s?s.name:''}に★${c}付与！（計${nt}）`,'gold');document.getElementById('g-reason').value='';grantStaffId='';document.getElementById('g-staff-search').value=''}}
-function renderBulkList(){const staff=getStaff(),fbs=DB.get('feedbacks',[]),date=document.getElementById('gb-date').value,fbIds=new Set(fbs.filter(f=>f.date===date).map(f=>f.staffId));document.getElementById('bulk-staff-list').innerHTML=staff.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer"><input type="checkbox" class="bc" value="${s.id}" ${fbIds.has(s.id)?'checked':''} style="width:20px;height:20px;accent-color:var(--gold-solid)"><span style="font-weight:500;flex:1">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></label>`).join('')||'<div class="empty">スタッフを登録してください</div>'}
+function renderBulkList(){const staff=getStaff(),fbs=_cache.fbRecords||[],date=document.getElementById('gb-date').value,fbIds=new Set(fbs.filter(f=>f.date===date).map(f=>f.staffId));document.getElementById('bulk-staff-list').innerHTML=staff.map(s=>`<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--bg3);cursor:pointer"><input type="checkbox" class="bc" value="${s.id}" ${fbIds.has(s.id)?'checked':''} style="width:20px;height:20px;accent-color:var(--gold-solid)"><span style="font-weight:500;flex:1">${s.name}</span><span style="color:var(--gold);font-size:13px;font-family:var(--font-en)">★${staffTotal(s.id)}</span></label>`).join('')||'<div class="empty">スタッフを登録してください</div>'}
 document.getElementById('gb-date')?.addEventListener('change',renderBulkList);
 async function grantBulk(){const c=+document.getElementById('gb-count').value||1,checks=document.querySelectorAll('.bc:checked');if(!checks.length){toast('対象を選択','error');return}const ok=await safeWrite('一括付与中...',async()=>{for(const x of checks){await addStamp({id:genId(),staffId:x.value,count:c,reason:'稼働（一括）',date:document.getElementById('gb-date').value,grantedBy:'admin',createdAt:new Date().toISOString()});checkMilestone(x.value,staffTotal(x.value))}});if(ok)toast(`${checks.length}名に★${c}を一括付与！`,'gold')}
 function checkMilestone(sid,total){getMilestones().forEach(m=>{if(total>=m.requiredStamps&&!getRedemptions().some(r=>r.staffId===sid&&r.milestoneId===m.id)){const s=getStaff().find(x=>x.id===sid);setTimeout(()=>toast(`🎉 ${s?s.name:''}が「${m.rewardEmoji} ${m.rewardName}」に到達！`,'gold'),500)}})}
+
+async function grantFromFB(staffId,date){
+  const s=getStaff().find(x=>x.id===staffId);
+  const ok=await safeWrite('スタンプ付与中...',async()=>{
+    await addStamp({id:genId(),staffId,count:1,reason:'FB回収完了',date,grantedBy:'admin',createdAt:new Date().toISOString()});
+  });
+  if(ok){const nt=staffTotal(staffId);checkMilestone(staffId,nt);toast(`${s?s.name:''}に★1付与（計${nt}）`,'gold');refreshDash()}
+}
 
 // Staff Page (with registration)
 function renderStaffPage(){const staff=getStaff(),q=(document.getElementById('staff-search').value||'').toLowerCase(),filtered=q?staff.filter(s=>s.name.toLowerCase().includes(q)):staff,sorted=filtered.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total);
