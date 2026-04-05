@@ -244,7 +244,7 @@ async function init(){
       const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();
       if(settings&&!settings.error){const msRow=settings.find(r=>r.key==='milestones');if(msRow&&msRow.value)milestones=JSON.parse(msRow.value)}
     }catch{}
-    if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}];
+    if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}];
   }catch(e){console.error(e)}
 
   document.getElementById('sp-loading').style.display='none';
@@ -313,7 +313,7 @@ function switchTab(tab){
 function renderStampCard(){
   const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);
   const ms=milestones.map(m=>({id:m.id,req:m.requiredStamps,name:m.rewardName,emoji:m.rewardEmoji||'🎁'})).sort((a,b)=>a.req-b.req);
-  if(!ms.length)ms.push({id:'ms1',req:5,name:'スタバチケット',emoji:'☕'});
+  if(!ms.length)ms.push({id:'ms1',req:5,name:'ギフトカード1000円分',emoji:'🎁'});
   const maxS=ms[ms.length-1].req;
   const next=ms.find(m=>m.req>total);
   const rd=redemptions.filter(r=>r.staffId===currentStaff.id).map(r=>r.milestoneId);
