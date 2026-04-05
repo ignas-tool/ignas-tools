@@ -180,7 +180,7 @@ textarea{resize:vertical;min-height:50px}
     <div class="page active" id="page-dash">
       <div class="stat-grid">
         <div class="stat-card"><div class="stat-num gold" id="s-total">0</div><div class="stat-label">総発行スタンプ</div></div>
-        <div class="stat-card"><div class="stat-num green" id="s-active">0%</div><div class="stat-label">アクティブ率</div></div>
+        <div class="stat-card"><div class="stat-num green" id="s-active">0%</div><div class="stat-label">30日間稼働率</div></div>
         <div class="stat-card"><div class="stat-num blue" id="s-redeemed">0</div><div class="stat-label">景品交換数</div></div>
         <div class="stat-card"><div class="stat-num accent" id="s-month">0</div><div class="stat-label">今月発行</div></div>
       </div>
@@ -319,7 +319,7 @@ async function loadAllData(){
         if(rsRow&&rsRow.value){_cache.reasons=JSON.parse(rsRow.value);localStorage.setItem('ignas_stampReasons',JSON.stringify(_cache.reasons))}
       }
     }catch{}
-    if(!_cache.milestones){try{_cache.milestones=JSON.parse(localStorage.getItem('ignas_milestones'))}catch{}_cache.milestones=_cache.milestones||[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}]}
+    if(!_cache.milestones){try{_cache.milestones=JSON.parse(localStorage.getItem('ignas_milestones'))}catch{}_cache.milestones=_cache.milestones||[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}]}
     if(!_cache.reasons){try{_cache.reasons=JSON.parse(localStorage.getItem('ignas_stampReasons'))}catch{}}
     _loaded=true;
   }catch(e){console.error(e);toast('読み込み失敗','error');
@@ -336,7 +336,7 @@ function getRedemptions(){return _cache.redemptions}
 // Settings stored locally (per-device)
 function getRules(){try{const r=JSON.parse(localStorage.getItem('ignas_bonusRules'));if(r&&r.length)return r}catch{}const d=[{id:'default',description:'稼働1回',stampCount:1,isActive:true}];localStorage.setItem('ignas_bonusRules',JSON.stringify(d));return d}
 function setRules(v){localStorage.setItem('ignas_bonusRules',JSON.stringify(v))}
-function getMilestones(){return _cache.milestones||[{id:'ms1',requiredStamps:5,rewardName:'スタバチケット',rewardEmoji:'☕'},{id:'ms2',requiredStamps:15,rewardName:'ディズニーチケット',rewardEmoji:'🏰'},{id:'ms3',requiredStamps:30,rewardName:'国内旅行',rewardEmoji:'✈️'}]}
+function getMilestones(){return _cache.milestones||[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}]}
 async function saveMilestonesToAPI(){
   const ms=getMilestones();localStorage.setItem('ignas_milestones',JSON.stringify(ms));
   const res=await apiCall('update','設定',{key:'milestones',value:JSON.stringify(ms)},'milestones');
@@ -364,7 +364,11 @@ function switchPage(p){currentPage=p;document.querySelectorAll('.page').forEach(
 function refreshDash(){const stamps=getStamps(),staff=getStaff(),redemptions=getRedemptions(),ms=getMilestones(),now=new Date(),monthStr=now.toISOString().slice(0,7);
 document.getElementById('s-total').textContent=stamps.reduce((a,s)=>a+(s.count||0),0);
 document.getElementById('s-month').textContent=stamps.filter(s=>(s.date||'').startsWith(monthStr)).reduce((a,s)=>a+(s.count||0),0);
-const oneMonthAgo=new Date(now-30*86400000).toISOString().slice(0,10),activeIds=new Set(stamps.filter(s=>s.date>=oneMonthAgo).map(s=>s.staffId));
+const oneMonthAgo=new Date(now-30*86400000).toISOString().slice(0,10);
+// アクティブ率 = 直近30日でFB記録があるスタッフ / 総スタッフ数
+const fbActiveIds=new Set((_cache.fbRecords||[]).filter(f=>(f.date||'').replace(/T.*$/,'')>=oneMonthAgo).map(f=>f.staffId));
+const stampActiveIds=new Set(stamps.filter(s=>(s.date||'').replace(/T.*$/,'')>=oneMonthAgo).map(s=>s.staffId));
+const activeIds=new Set([...fbActiveIds,...stampActiveIds]);
 document.getElementById('s-active').textContent=(staff.length?Math.round(activeIds.size/staff.length*100):0)+'%';
 document.getElementById('s-redeemed').textContent=redemptions.length;
 const totals=staff.map(s=>({...s,total:staffTotal(s.id)})).sort((a,b)=>b.total-a.total).slice(0,10);
