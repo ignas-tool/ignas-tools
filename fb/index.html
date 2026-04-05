@@ -459,12 +459,10 @@ function initRecordPage(){if(!document.getElementById('fb-date').value)document.
 
 function startFBFromSurvey(staffId,date){
   switchPage('record');
-  // Auto-fill staff
   const s=getStaff().find(st=>st.id===staffId);
   if(s){selectedStaffId=staffId;document.getElementById('staff-search').value=s.name}
-  // Auto-fill date
   if(date)document.getElementById('fb-date').value=date;
-  // Trigger survey ref check
+  renderRecorderSelect();
   setTimeout(()=>checkSurveyRef(),100);
   showToast(s?s.name+'のFB記録を開始':'FB記録を開始');
 }
