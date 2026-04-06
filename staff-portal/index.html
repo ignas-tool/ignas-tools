@@ -3,443 +3,187 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#faf6f0">
+<meta name="theme-color" content="#d42020">
 <title>IGNAS スタッフポータル</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{
-  --bg:#faf6f0;--bg2:#ffffff;--bg3:#f0ebe3;--bg4:#e5ddd5;
-  --text:#2a2520;--text2:#6b6560;--text3:#9e9890;
-  --accent:#e86430;--accent-bg:rgba(232,100,48,0.08);
-  --gold:#c08820;--gold-bg:rgba(192,136,32,0.10);--gold-solid:#f0c040;
-  --green:#3dba6d;--green-bg:rgba(61,186,109,0.08);
-  --red:#dc4030;
-  --border:#e0d8d0;--radius:16px;--radius-sm:10px;
-}
+:root{--primary:#d42020;--primary-light:#ff4d4d;--bg:#f5f5f5;--bg2:#ffffff;--bg3:#f0f0f0;--text:#1a1a1a;--text2:#666;--text3:#999;--green:#2ecc71;--green-bg:rgba(46,204,113,.08);--gold:#f0c040;--gold-bg:rgba(240,192,64,.1);--border:#e8e8e8;--radius:16px;--radius-sm:10px}
 html{height:100%;background:var(--bg)}
-body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN',Meiryo,sans-serif;color:var(--text);min-height:100vh;max-width:440px;margin:0 auto;-webkit-tap-highlight-color:transparent;display:flex;flex-direction:column}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;color:var(--text);min-height:100vh;max-width:440px;margin:0 auto;display:flex;flex-direction:column;-webkit-tap-highlight-color:transparent}
 button{cursor:pointer;border:none;background:none;font-family:inherit;color:inherit}
-input,select,textarea{font-family:inherit;font-size:16px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;width:100%;outline:none;transition:border-color .2s;box-sizing:border-box;max-width:100%;min-height:48px;line-height:1.4}
-input:focus,textarea:focus{border-color:var(--accent)}
+input,select,textarea{font-family:inherit;font-size:16px;background:var(--bg2);color:var(--text);border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;width:100%;outline:none;transition:border-color .2s;box-sizing:border-box}
+input:focus,textarea:focus{border-color:var(--primary)}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' fill='none' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
 textarea{resize:none}
-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6560' fill='none' stroke-width='2'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center}
-
-/* Header */
-.header{text-align:center;padding:20px 16px 12px;background:var(--bg2);border-bottom:1px solid var(--border)}
-.header-logo{font-size:11px;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase}
-.header h1{font-size:18px;font-weight:800;margin-top:2px}
-.staff-badge{display:inline-flex;align-items:center;gap:6px;background:var(--accent-bg);color:var(--accent);padding:6px 16px;border-radius:20px;font-size:13px;font-weight:600;margin-top:8px}
-
-/* Bottom Nav */
-.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px);position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:440px;margin:0 auto}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;gap:3px;transition:color .2s}
-.nav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .2s}
-.nav-item span{font-size:10px;color:var(--text3);font-weight:500;transition:color .2s}
-.nav-item.active svg{stroke:var(--accent)}
-.nav-item.active span{color:var(--accent)}
-
-/* Main */
+.header{background:linear-gradient(135deg,var(--primary),var(--primary-light));color:#fff;padding:16px;border-radius:0 0 20px 20px}
+.header-top{display:flex;align-items:center;justify-content:space-between}
+.header-greeting{font-size:12px;opacity:.8}
+.header-name{font-size:18px;font-weight:700;margin-top:2px}
+.header-rank{background:rgba(255,255,255,.2);padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600}
+.bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);padding-bottom:env(safe-area-inset-bottom,0px);position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:440px;margin:0 auto}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;gap:3px;transition:color .15s}
+.nav-item svg{width:22px;height:22px;stroke:var(--text3);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:stroke .15s}
+.nav-item span{font-size:10px;color:var(--text3);font-weight:500;transition:color .15s}
+.nav-item.active svg{stroke:var(--primary)}
+.nav-item.active span{color:var(--primary);font-weight:600}
 .main{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:80px}
-.page{display:none;padding:16px;padding-bottom:24px;animation:fadeUp .3s ease}
+.page{display:none;padding:16px;animation:fadeUp .25s ease}
 .page.active{display:block}
-@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
-
-/* Card */
-.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:20px 16px;margin-bottom:12px;box-shadow:0 2px 12px rgba(42,37,32,.06)}
-.card-title{font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.5px;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--bg3);display:flex;align-items:center;gap:8px}
-.card-title .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
-
-/* Stamp Card Visual */
-.stamp-card{background:linear-gradient(145deg,#fffef9 0%,#f8f0e0 50%,#f5ece0 100%);border:2px solid var(--gold-solid);border-radius:20px;padding:24px 20px;text-align:center;position:relative;overflow:hidden;box-shadow:0 8px 32px rgba(192,136,32,.12),0 2px 8px rgba(0,0,0,.04);margin-bottom:16px}
-.stamp-card::before{content:'';position:absolute;top:-30%;right:-30%;width:60%;height:60%;background:radial-gradient(circle,rgba(240,192,64,.08) 0%,transparent 70%);pointer-events:none}
-.stamp-card::after{content:'';position:absolute;bottom:-20%;left:-20%;width:50%;height:50%;background:radial-gradient(circle,rgba(232,100,48,.04) 0%,transparent 70%);pointer-events:none}
-.stamp-label{font-size:10px;color:var(--gold);font-weight:800;letter-spacing:2.5px;text-transform:uppercase}
-.stamp-count{font-size:56px;font-weight:800;color:var(--gold);margin:6px 0 0;line-height:1;text-shadow:0 2px 8px rgba(192,136,32,.15)}
-.stamp-count-sub{font-size:12px;color:var(--text3);font-weight:500;letter-spacing:1px}
-.stamp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(34px,1fr));gap:6px;margin:18px 0;max-width:100%}
-.stamp-slot{width:34px;height:34px;border-radius:50%;border:2px dashed rgba(192,136,32,.25);display:flex;align-items:center;justify-content:center;font-size:14px;margin:0 auto;background:rgba(255,255,255,.5);transition:all .3s}
-.stamp-slot.filled{border:2px solid var(--gold-solid);background:linear-gradient(135deg,rgba(240,192,64,.15),rgba(240,192,64,.05));box-shadow:0 1px 4px rgba(192,136,32,.12)}
-.stamp-slot.ms{border-color:var(--accent);border-style:solid;border-width:2.5px}
-.stamp-slot.ms.filled{background:linear-gradient(135deg,rgba(232,100,48,.1),rgba(232,100,48,.03))}
-.progress-bar{height:8px;background:rgba(0,0,0,.04);border-radius:4px;overflow:hidden;margin-top:14px}
-.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold-solid),#f0d060);transition:width 1.2s .3s cubic-bezier(.4,0,.2,1)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.card{background:var(--bg2);border-radius:var(--radius);padding:16px;margin-bottom:12px;box-shadow:0 1px 6px rgba(0,0,0,.05)}
+.card-title{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.stamp-card{background:linear-gradient(135deg,#fff9f0,#fff5e8);border:2px solid var(--gold);border-radius:20px;padding:24px 16px;text-align:center;overflow:hidden;box-shadow:0 4px 20px rgba(240,192,64,.12);margin-bottom:12px}
+.stamp-label{font-size:10px;color:var(--primary);font-weight:800;letter-spacing:2px;text-transform:uppercase}
+.stamp-count{font-size:52px;font-weight:800;color:var(--primary);line-height:1;margin:6px 0}
+.stamp-count-sub{font-size:12px;color:var(--text2)}
+.stamp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(32px,1fr));gap:5px;margin:16px 0}
+.stamp-slot{width:32px;height:32px;border-radius:50%;border:2px dashed rgba(0,0,0,.1);display:flex;align-items:center;justify-content:center;font-size:13px;margin:0 auto;background:rgba(255,255,255,.6)}
+.stamp-slot.filled{border:2px solid var(--gold);background:var(--gold-bg)}
+.stamp-slot.ms{border-color:var(--primary);border-style:solid;border-width:2.5px}
+.stamp-slot.ms.filled{background:rgba(212,32,32,.08)}
+.progress-bar{height:8px;background:var(--bg3);border-radius:4px;overflow:hidden;margin-top:14px}
+.progress-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--primary),var(--primary-light));transition:width 1s .3s cubic-bezier(.4,0,.2,1)}
 .progress-text{font-size:12px;color:var(--text2);margin-top:6px}
-
-/* Milestone */
 .ms-item{display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:6px}
-.ms-item.reached{background:var(--green-bg);border:1px solid rgba(61,186,109,.3)}
+.ms-item.reached{background:var(--green-bg);border:1px solid rgba(46,204,113,.3)}
 .ms-emoji{font-size:24px;flex-shrink:0}
-.ms-info{flex:1}
-.ms-name{font-weight:600;font-size:13px}
-.ms-status{font-size:11px;color:var(--text3);margin-top:2px}
+.ms-info{flex:1}.ms-name{font-weight:600;font-size:13px}.ms-status{font-size:11px;color:var(--text3);margin-top:2px}
 .ms-item.reached .ms-status{color:var(--green);font-weight:600}
-
-/* Survey Form */
-.form-group{margin-bottom:16px}
-.form-label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
-.form-hint{font-size:11px;color:var(--text3);margin-top:4px}
-
-.faces{display:flex;justify-content:space-between;gap:6px}
-.face{width:56px;height:56px;border-radius:50%;background:var(--bg2);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:28px;transition:all .2s}
-.face:active{transform:scale(.9)}
-.face.selected{border-color:var(--accent);background:var(--accent-bg);transform:scale(1.1);box-shadow:0 4px 16px rgba(232,100,48,.2)}
+.form-group{margin-bottom:14px}.form-label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.faces{display:flex;justify-content:space-between;gap:4px}
+.face{width:52px;height:52px;border-radius:50%;background:var(--bg2);border:2.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:26px;transition:all .15s}
+.face.selected{border-color:var(--primary);background:rgba(212,32,32,.06);transform:scale(1.08)}
 .face-text{display:flex;justify-content:space-between;padding:4px 8px 0;font-size:10px;color:var(--text3)}
-
 .tags{display:flex;flex-wrap:wrap;gap:8px}
-.tag{padding:9px 14px;border-radius:20px;background:var(--bg2);border:1.5px solid var(--border);font-size:13px;transition:all .2s}
-.tag:active{transform:scale(.95)}
-.tag.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
-
-.date-btn{padding:11px 14px;border-radius:var(--radius-sm);background:var(--bg2);border:1.5px solid var(--border);font-size:14px;text-align:left;display:flex;justify-content:space-between;transition:all .2s;margin-bottom:6px;width:100%}
-.date-btn:active{transform:scale(.98)}
-.date-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
-.undecided-btn{width:100%;padding:11px;border-radius:var(--radius-sm);background:var(--bg3);border:1.5px solid transparent;font-size:14px;text-align:center;color:var(--text2);transition:all .2s}
-.undecided-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
-
+.tag{padding:8px 14px;border-radius:20px;background:var(--bg2);border:1.5px solid var(--border);font-size:13px;transition:all .15s}
+.tag.selected{border-color:var(--primary);background:rgba(212,32,32,.06);color:var(--primary)}
+.date-btn{padding:10px 14px;border-radius:var(--radius-sm);background:var(--bg2);border:1.5px solid var(--border);font-size:14px;text-align:left;width:100%;margin-bottom:6px;transition:all .15s}
+.date-btn.selected{border-color:var(--primary);background:rgba(212,32,32,.06);color:var(--primary)}
+.undecided-btn{width:100%;padding:10px;border-radius:var(--radius-sm);background:var(--bg3);border:1.5px solid transparent;font-size:14px;text-align:center;color:var(--text2)}
+.undecided-btn.selected{border-color:var(--primary);background:rgba(212,32,32,.06);color:var(--primary)}
 .atmo-group{display:flex;gap:8px}
-.atmo-btn{flex:1;padding:11px 6px;border-radius:var(--radius-sm);background:var(--bg2);border:2px solid var(--border);font-size:13px;font-weight:500;text-align:center;transition:all .2s}
-.atmo-btn:active{transform:scale(.96)}
-.atmo-btn.selected{border-color:var(--accent);background:var(--accent-bg);color:var(--accent)}
-
-.btn-primary{width:100%;padding:16px;background:var(--accent);color:#fff;border-radius:var(--radius);font-size:16px;font-weight:700;box-shadow:0 4px 16px rgba(232,100,48,.2);transition:all .15s}
-.btn-primary:active{transform:scale(.98)}
-.btn-primary:disabled{opacity:.4;pointer-events:none}
-
-/* Training */
-.training-item{padding:12px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:8px}
-.training-date{font-weight:600;font-size:14px}
-.training-sub{font-size:12px;color:var(--text3);margin-top:2px}
-
-/* Toast */
+.atmo-btn{flex:1;padding:10px 6px;border-radius:var(--radius-sm);background:var(--bg2);border:2px solid var(--border);font-size:13px;font-weight:500;text-align:center;transition:all .15s}
+.atmo-btn.selected{border-color:var(--primary);background:rgba(212,32,32,.06);color:var(--primary)}
+.btn-primary{width:100%;padding:14px;background:var(--primary);color:#fff;border-radius:var(--radius);font-size:16px;font-weight:700;box-shadow:0 4px 12px rgba(212,32,32,.2)}
+.btn-primary:active{transform:scale(.98)}.btn-primary:disabled{opacity:.4;pointer-events:none}
+.schedule-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:6px}
+.schedule-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.schedule-icon.pending{background:rgba(240,192,64,.15)}.schedule-icon.confirmed{background:var(--green-bg)}
+.schedule-info{flex:1;min-width:0}.schedule-title{font-weight:600;font-size:14px}.schedule-meta{font-size:11px;color:var(--text3);margin-top:2px}
+.schedule-badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;flex-shrink:0}
+.schedule-badge.pending{background:rgba(240,192,64,.15);color:#a87c10}.schedule-badge.confirmed{background:var(--green-bg);color:var(--green)}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);color:#fff;padding:12px 24px;border-radius:var(--radius);font-weight:600;font-size:14px;z-index:200;transition:transform .3s;box-shadow:0 4px 20px rgba(0,0,0,.12)}
-.toast.show{transform:translateX(-50%) translateY(0)}
-.toast.success{background:var(--green)}
-.toast.error{background:var(--red)}
-
-/* Loading */
-#sp-loading{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(250,246,240,.9);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column}
-#sp-loading .spinner{width:36px;height:36px;border:3px solid var(--bg4);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite}
+.toast.show{transform:translateX(-50%) translateY(0)}.toast.success{background:var(--green)}.toast.error{background:var(--primary)}
+#sp-loading{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(245,245,245,.95);z-index:500;display:flex;align-items:center;justify-content:center;flex-direction:column}
+#sp-loading .spinner{width:36px;height:36px;border:3px solid var(--bg3);border-top-color:var(--primary);border-radius:50%;animation:spin .8s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 #sp-loading .msg{margin-top:12px;font-size:14px;color:var(--text2)}
-
-/* Select screen */
-.select-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;padding:20px;text-align:center}
-.select-screen h2{font-size:20px;margin-bottom:4px}
-.select-screen p{font-size:13px;color:var(--text2);margin-bottom:20px}
-.select-screen select{max-width:300px}
-
-/* Error */
-.error-msg{font-size:12px;color:var(--red);margin-top:4px;display:none}
-.error-msg.show{display:block}
-@keyframes shake{0%,100%{transform:translateX(0)}20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
-.shake{animation:shake .4s ease}
-
-/* Confirm */
-.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(42,37,32,.5);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column}
+.login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:20px;text-align:center;background:linear-gradient(180deg,var(--primary) 0%,var(--primary) 35%,var(--bg) 35%)}
+.login-card{background:var(--bg2);border-radius:20px;padding:32px 24px;width:100%;max-width:320px;box-shadow:0 8px 32px rgba(0,0,0,.1);margin-top:-40px}
+.login-logo{color:#fff;font-size:12px;font-weight:800;letter-spacing:2px;margin-bottom:60px}
+.login-title{font-size:18px;font-weight:700;margin-bottom:4px}
+.login-sub{font-size:12px;color:var(--text3);margin-bottom:20px}
+.confirm-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.4);z-index:300;display:none;align-items:center;justify-content:center;flex-direction:column}
 .confirm-overlay.show{display:flex}
 .confirm-check{width:72px;height:72px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;animation:popIn .4s cubic-bezier(.34,1.56,.64,1)}
 .confirm-check svg{width:36px;height:36px;stroke:#fff;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .confirm-text{color:var(--text);font-size:16px;font-weight:700;margin-top:12px;background:var(--bg2);padding:8px 20px;border-radius:var(--radius-sm)}
 @keyframes popIn{from{transform:scale(0)}to{transform:scale(1)}}
-
-.empty{text-align:center;padding:32px 16px;color:var(--text3);font-size:14px;line-height:1.7}
+.empty{text-align:center;padding:24px;color:var(--text3);font-size:13px;line-height:1.7}
+.error-msg{font-size:12px;color:var(--primary);margin-top:4px;display:none}.error-msg.show{display:block}
 </style>
 </head>
 <body>
-
-<!-- Loading -->
 <div id="sp-loading"><div class="spinner"></div><div class="msg">読み込み中...</div></div>
-
-<!-- Staff Select Screen -->
-<div id="select-screen" class="select-screen" style="display:none">
-  <div class="header-logo">IGNAS Holdings</div>
-  <h2>スタッフポータル</h2>
-  <p style="font-size:12px;color:var(--text2);margin-bottom:16px">名前を選択してPINコードを入力してください</p>
-  <select id="staff-select"><option value="">-- 選択 --</option></select>
-  <div style="margin-top:12px;position:relative;max-width:300px;width:100%">
-    <input type="password" id="pin-input" placeholder="4桁のPINコード" maxlength="4" inputmode="numeric" style="text-align:center;font-size:16px;letter-spacing:6px;font-weight:600">
+<div id="login-screen" class="login-screen" style="display:none">
+  <div class="login-logo">IGNAS HOLDINGS</div>
+  <div class="login-card">
+    <div class="login-title">スタッフポータル</div>
+    <div class="login-sub">名前を選択してPINコードを入力</div>
+    <select id="staff-select" style="margin-bottom:10px"><option value="">-- 名前を選択 --</option></select>
+    <input type="password" id="pin-input" placeholder="4桁のPINコード" maxlength="4" inputmode="numeric" style="text-align:center;letter-spacing:6px;font-weight:600;margin-bottom:6px">
+    <div id="pin-error" class="error-msg">PINコードが正しくありません</div>
+    <button class="btn-primary" onclick="enterPortal()" style="margin-top:12px">ログイン</button>
+    <div style="margin-top:16px;font-size:11px;color:var(--text3)">PINコードは管理者からお知らせします</div>
   </div>
-  <div id="pin-error" style="color:var(--red);font-size:12px;margin-top:6px;display:none">PINコードが正しくありません</div>
-  <div style="margin-top:14px;width:100%;max-width:300px"><button class="btn-primary" onclick="enterPortal()">ログイン</button></div>
-  <div style="margin-top:20px;font-size:11px;color:var(--text3);line-height:1.6">PINコードは管理者から<br>お知らせします</div>
 </div>
-
-<!-- Main App (hidden until staff selected) -->
 <div id="app" style="display:none;flex-direction:column">
-  <div class="header" style="display:flex;align-items:center;justify-content:space-between">
-    <div>
-      <div class="header-logo">IGNAS</div>
-      <h1 style="font-size:16px">スタッフポータル</h1>
-    </div>
-    <div class="staff-badge" id="portal-name">-</div>
-  </div>
-
+  <div class="header"><div class="header-top"><div><div class="header-greeting">こんにちは</div><div class="header-name" id="portal-name">-</div></div><div class="header-rank" id="portal-stamps">★0</div></div></div>
   <div class="main">
-    <!-- Stamp Page -->
-    <div class="page active" id="page-stamp">
-      <div class="stamp-card" id="stamp-card-area"></div>
-      <div class="card"><div class="card-title"><span class="dot" style="background:var(--gold)"></span>景品マイルストーン</div><div id="ms-list"></div></div>
-    </div>
-
-    <!-- Survey Page -->
-    <div class="page" id="page-survey">
-      <div class="card">
-        <div class="card-title"><span class="dot"></span>今日の振り返り</div>
-        <div class="form-group"><div class="form-label">満足度 *</div><div class="faces" id="faces"><button class="face" data-v="1" onclick="setSat(1)">😫</button><button class="face" data-v="2" onclick="setSat(2)">😟</button><button class="face" data-v="3" onclick="setSat(3)">😐</button><button class="face" data-v="4" onclick="setSat(4)">😊</button><button class="face" data-v="5" onclick="setSat(5)">🤩</button></div><div class="face-text"><span>最悪</span><span>微妙</span><span>普通</span><span>良い</span><span>最高</span></div><div class="error-msg" id="err-sat">選択してください</div></div>
-        <div class="form-group"><div class="form-label">困ったこと</div><input type="text" id="sv-issues" placeholder="一言でOK（空欄可）" maxlength="100"></div>
-        <div class="form-group"><div class="form-label">店舗は合いましたか？</div><div class="atmo-group" id="sv-fit-group"><button class="atmo-btn" data-v="合う" onclick="setFit('合う')">😊 合う</button><button class="atmo-btn" data-v="普通" onclick="setFit('普通')">😐 普通</button><button class="atmo-btn" data-v="合わない" onclick="setFit('合わない')">😟 合わない</button></div></div>
-        <div class="form-group"><div class="form-label">着座数</div><input type="number" id="sv-seats" placeholder="0" min="0" inputmode="numeric"></div>
-        <div class="form-group"><div class="form-label">乗り換え件数</div><input type="number" id="sv-switch" placeholder="0" min="0" inputmode="numeric"></div>
-        <div class="form-group"><div class="form-label">研修で学びたいこと</div><div class="tags" id="sv-tags"><button class="tag" data-t="接客トーク" onclick="toggleTag(this)">💬 接客トーク</button><button class="tag" data-t="料金プラン" onclick="toggleTag(this)">📱 料金プラン</button><button class="tag" data-t="クロージング" onclick="toggleTag(this)">🤝 クロージング</button><button class="tag" data-t="キャンペーン" onclick="toggleTag(this)">🎯 キャンペーン</button><button class="tag" data-t="その他" onclick="toggleTag(this)">✏️ その他</button></div><input type="text" id="sv-other" placeholder="その他の内容" style="margin-top:8px;display:none"></div>
-        <div class="form-group"><div class="form-label">次回研修いつ参加できる？ *</div><div id="sv-dates"></div><button class="undecided-btn" id="sv-undecided" onclick="setUndecided()">🤔 まだ未定</button><div class="error-msg" id="err-date">選択してください</div></div>
-        <button class="btn-primary" id="btn-submit-sv" onclick="submitSurvey()">送信する ✉️</button>
-      </div>
-    </div>
-
-    <!-- Training Page -->
-    <div class="page" id="page-training">
-      <div class="card"><div class="card-title"><span class="dot" style="background:var(--green)"></span>研修情報</div><div id="training-info"></div></div>
-    </div>
+    <div class="page active" id="page-stamp"><div class="stamp-card" id="stamp-card-area"></div><div class="card"><div class="card-title">🎁 景品マイルストーン</div><div id="ms-list"></div></div></div>
+    <div class="page" id="page-survey"><div class="card"><div class="card-title">📋 今日の振り返り</div>
+      <div class="form-group"><div class="form-label">満足度</div><div class="faces"><button class="face" data-v="1" onclick="setSat(1)">😫</button><button class="face" data-v="2" onclick="setSat(2)">😟</button><button class="face" data-v="3" onclick="setSat(3)">😐</button><button class="face" data-v="4" onclick="setSat(4)">😊</button><button class="face" data-v="5" onclick="setSat(5)">🤩</button></div><div class="face-text"><span>最悪</span><span>微妙</span><span>普通</span><span>良い</span><span>最高</span></div><div class="error-msg" id="err-sat">選択してください</div></div>
+      <div class="form-group"><div class="form-label">困ったこと</div><input type="text" id="sv-issues" placeholder="一言でOK（空欄可）" maxlength="100"></div>
+      <div class="form-group"><div class="form-label">店舗は合いましたか？</div><div class="atmo-group" id="sv-fit-group"><button class="atmo-btn" data-v="合う" onclick="setFit('合う')">😊 合う</button><button class="atmo-btn" data-v="普通" onclick="setFit('普通')">😐 普通</button><button class="atmo-btn" data-v="合わない" onclick="setFit('合わない')">😟 合わない</button></div></div>
+      <div class="form-group"><div class="form-label">着座数</div><input type="number" id="sv-seats" placeholder="0" min="0" inputmode="numeric"></div>
+      <div class="form-group"><div class="form-label">乗り換え件数</div><input type="number" id="sv-switch" placeholder="0" min="0" inputmode="numeric"></div>
+      <div class="form-group"><div class="form-label">研修で学びたいこと</div><div class="tags"><button class="tag" data-t="接客トーク" onclick="toggleTag(this)">💬 接客トーク</button><button class="tag" data-t="料金プラン" onclick="toggleTag(this)">📱 料金プラン</button><button class="tag" data-t="クロージング" onclick="toggleTag(this)">🤝 クロージング</button><button class="tag" data-t="キャンペーン" onclick="toggleTag(this)">🎯 キャンペーン</button><button class="tag" data-t="その他" onclick="toggleTag(this)">✏️ その他</button></div><input type="text" id="sv-other" placeholder="その他の内容" style="margin-top:8px;display:none"></div>
+      <div class="form-group"><div class="form-label">次回研修いつ参加できる？</div><div id="sv-dates"></div><button class="undecided-btn" id="sv-undecided" onclick="setUndecided()">🤔 まだ未定</button></div>
+      <button class="btn-primary" id="btn-submit-sv" onclick="submitSurvey()">送信する</button>
+    </div></div>
+    <div class="page" id="page-training"><div class="card"><div class="card-title">📅 研修スケジュール</div><div id="training-schedule"></div></div><div class="card"><div class="card-title">📖 あなたの研修ニーズ</div><div id="training-needs"></div></div></div>
   </div>
-
   <div class="bottom-nav">
     <button class="nav-item active" onclick="switchTab('stamp')"><svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26"/></svg><span>スタンプ</span></button>
     <button class="nav-item" onclick="switchTab('survey')"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8"/></svg><span>アンケート</span></button>
     <button class="nav-item" onclick="switchTab('training')"><svg viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg><span>研修</span></button>
   </div>
 </div>
-
-<!-- Toast -->
 <div class="toast" id="toast"></div>
-<!-- Confirm -->
 <div class="confirm-overlay" id="confirm-overlay"><div class="confirm-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div><div class="confirm-text">送信完了！</div></div>
-
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
-
-let staffList=[],stamps=[],redemptions=[],fbRecords=[],milestones=[];
-let currentStaff=null;
-let svSat=0,svFit='',svTags=new Set(),svDate='',svUndecided=false;
-let _busy=false;
-
-// ========== API ==========
-async function apiCall(action,sheet,data,id){
-  for(let r=0;r<2;r++){
-    try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}
-    catch(e){if(r===1)return{error:e.message};await new Promise(x=>setTimeout(x,1000))}
-  }
-}
-
-// ========== Init ==========
+let staffList=[],stamps=[],redemptions=[],fbRecords=[],milestones=[],trainingLogs=[];
+let currentStaff=null,svSat=0,svFit='',svTags=new Set(),svDate='',svUndecided=false,_busy=false;
+function normDate(d){return d?String(d).replace(/T.*$/,'').trim():''}
+function fmtDate(d){if(!d)return'—';return normDate(d).replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
+function today(){return new Date().toISOString().slice(0,10)}
+function toast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(isError?'error':'success');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
+async function apiCall(action,sheet,data,id){for(let r=0;r<2;r++){try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}catch(e){if(r===1)return{error:e.message};await new Promise(x=>setTimeout(x,1000))}}}
 async function init(){
-  try{
-    const res=await fetch(API_URL+'?action=getAllSheets');
-    const data=await res.json();
-    staffList=data['スタッフマスター']||[];
-    stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
-    redemptions=data['景品交換']||[];
-    fbRecords=data['FB記録']||[];
-    // Load milestones from settings sheet
-    try{
-      const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();
-      if(settings&&!settings.error){const msRow=settings.find(r=>r.key==='milestones');if(msRow&&msRow.value)milestones=JSON.parse(msRow.value)}
-    }catch{}
-    if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}];
-  }catch(e){console.error(e)}
-
+  try{const res=await fetch(API_URL+'?action=getAllSheets');const data=await res.json();staffList=data['スタッフマスター']||[];stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));redemptions=data['景品交換']||[];fbRecords=(data['FB記録']||[]).map(r=>({...r,date:normDate(r.date)}))}catch(e){console.error(e)}
+  try{const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();if(settings&&!settings.error){const msRow=settings.find(r=>r.key==='milestones');if(msRow&&msRow.value)milestones=JSON.parse(msRow.value)}}catch{}
+  if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}];
+  try{const tl=await(await fetch(API_URL+'?action=getAll&sheet=研修ログ')).json();if(tl&&!tl.error)trainingLogs=tl.map(r=>({...r,date:normDate(r.date),rating:+r.rating||0,participants:r.participants?String(r.participants).split(',').filter(Boolean):[]}))}catch{}
   document.getElementById('sp-loading').style.display='none';
-
-  // Check URL params
-  const params=new URLSearchParams(location.search);
-  const sid=params.get('staff');
-  const urlPin=params.get('pin');
-  if(sid){
-    currentStaff=staffList.find(s=>s.id===sid);
-    if(currentStaff){
-      const staffPin=currentStaff.pin||'0000';
-      if(urlPin===staffPin){
-        showApp();return;
-      }
-      // Has staff param but no/wrong PIN - show login with staff pre-selected
-      const sel=document.getElementById('staff-select');
-      sel.innerHTML='<option value="">-- 名前を選択 --</option>'+staffList.map(s=>`<option value="${s.id}" ${s.id===sid?'selected':''}>${s.name}</option>`).join('');
-      document.getElementById('select-screen').style.display='flex';
-      return;
-    }
-  }
-
-  // Show select screen
-  const sel=document.getElementById('staff-select');
-  sel.innerHTML='<option value="">-- 名前を選択 --</option>'+staffList.map(s=>`<option value="${s.id}">${s.name}</option>`).join('');
-  document.getElementById('select-screen').style.display='flex';
+  const params=new URLSearchParams(location.search),sid=params.get('staff'),urlPin=params.get('pin');
+  if(sid){currentStaff=staffList.find(s=>s.id===sid);if(currentStaff){if(urlPin===(currentStaff.pin||'0000')){showApp();return}}}
+  const sel=document.getElementById('staff-select');sel.innerHTML='<option value="">-- 名前を選択 --</option>'+staffList.map(s=>`<option value="${s.id}" ${sid&&s.id===sid?'selected':''}>${s.name}</option>`).join('');
+  document.getElementById('login-screen').style.display='flex';
 }
-
-function enterPortal(){
-  const sid=document.getElementById('staff-select').value;
-  if(!sid){toast('名前を選択してください',true);return}
-  const pin=document.getElementById('pin-input').value.trim();
-  currentStaff=staffList.find(s=>s.id===sid);
-  if(!currentStaff){toast('スタッフが見つかりません',true);return}
-
-  // PIN check: if staff has a PIN set, require it. Default PIN is "0000" if not set.
-  const staffPin=currentStaff.pin||'0000';
-  if(pin!==staffPin){
-    document.getElementById('pin-error').style.display='block';
-    document.getElementById('pin-input').value='';
-    return;
-  }
-  document.getElementById('pin-error').style.display='none';
-  document.getElementById('select-screen').style.display='none';
-  showApp();
-}
-
-function showApp(){
-  document.getElementById('app').style.display='flex';
-  document.getElementById('app').style.flex='1';
-  document.getElementById('portal-name').textContent=currentStaff.name+'さん';
-  renderStampCard();
-  generateDates();
-  renderTraining();
-}
-
-// ========== Navigation ==========
-function switchTab(tab){
-  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.getElementById('page-'+tab).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['stamp','survey','training'][i]===tab));
-}
-
-// ========== Stamp Card ==========
+function enterPortal(){const sid=document.getElementById('staff-select').value;if(!sid){toast('名前を選択してください',true);return}const pin=document.getElementById('pin-input').value.trim();currentStaff=staffList.find(s=>s.id===sid);if(!currentStaff){toast('スタッフが見つかりません',true);return}if(pin!==(currentStaff.pin||'0000')){document.getElementById('pin-error').classList.add('show');document.getElementById('pin-input').value='';return}document.getElementById('pin-error').classList.remove('show');document.getElementById('login-screen').style.display='none';showApp()}
+function showApp(){document.getElementById('app').style.display='flex';document.getElementById('portal-name').textContent=currentStaff.name+'さん';const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);document.getElementById('portal-stamps').textContent='★'+total;renderStampCard();generateDates();renderTraining()}
+function switchTab(tab){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+tab).classList.add('active');document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['stamp','survey','training'][i]===tab));if(tab==='training')renderTraining()}
 function renderStampCard(){
   const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);
   const ms=milestones.map(m=>({id:m.id,req:m.requiredStamps,name:m.rewardName,emoji:m.rewardEmoji||'🎁'})).sort((a,b)=>a.req-b.req);
-  if(!ms.length)ms.push({id:'ms1',req:5,name:'ギフトカード1000円分',emoji:'🎁'});
-  const maxS=ms[ms.length-1].req;
-  const next=ms.find(m=>m.req>total);
-  const rd=redemptions.filter(r=>r.staffId===currentStaff.id).map(r=>r.milestoneId);
-
-  let grid='';
-  for(let i=1;i<=maxS;i++){
-    const filled=i<=total;
-    const isMs=ms.some(m=>m.req===i);
-    const mObj=ms.find(m=>m.req===i);
-    grid+=`<div class="stamp-slot ${filled?'filled':''} ${isMs?'ms':''}">${filled?(isMs?mObj.emoji:'★'):(isMs?mObj.emoji:'')}</div>`;
-  }
-
-  const pBase=ms.filter(m=>m.req<=total).pop();
-  const base=pBase?pBase.req:0;
-  const target=next?next.req:maxS;
-  const pct=next?Math.round((total-base)/(target-base)*100):100;
-
-  document.getElementById('stamp-card-area').innerHTML=`
-    <div class="stamp-label">IGNAS STAMP CARD</div>
-    <div class="stamp-count">${total}</div>
-    <div class="stamp-count-sub">スタンプ</div>
-    <div class="stamp-grid">${grid}</div>
-    ${next?`<div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div>
-    <div class="progress-text">次：${next.emoji} ${next.name}（あと${next.req-total}個）</div>`
-    :'<div style="color:var(--green);font-weight:700;font-size:14px;margin-top:8px">🎉 全達成！おめでとうございます！</div>'}`;
-
+  const maxS=ms.length?ms[ms.length-1].req:5;const next=ms.find(m=>m.req>total);const rd=redemptions.filter(r=>r.staffId===currentStaff.id).map(r=>r.milestoneId);
+  let grid='';const showMax=Math.min(maxS,30);
+  for(let i=1;i<=showMax;i++){const filled=i<=total;const isMs=ms.some(m=>m.req===i);const mObj=ms.find(m=>m.req===i);grid+=`<div class="stamp-slot ${filled?'filled':''} ${isMs?'ms':''}">${filled?(isMs?mObj.emoji:'★'):(isMs?mObj.emoji:'')}</div>`}
+  if(maxS>30)grid+=`<div style="grid-column:1/-1;text-align:center;font-size:12px;color:var(--text3);padding:4px">... ${maxS}個まで</div>`;
+  const pBase=ms.filter(m=>m.req<=total).pop();const base=pBase?pBase.req:0;const target=next?next.req:maxS;const pct=next&&(target-base)>0?Math.round((total-base)/(target-base)*100):total>=maxS?100:0;
+  document.getElementById('stamp-card-area').innerHTML=`<div class="stamp-label">IGNAS STAMP CARD</div><div class="stamp-count">${total}</div><div class="stamp-count-sub">スタンプ</div><div class="stamp-grid">${grid}</div>${next?`<div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div><div class="progress-text">次：${next.emoji} ${next.name}（あと${next.req-total}個）</div>`:'<div style="color:var(--green);font-weight:700;font-size:14px;margin-top:8px">🎉 全達成！</div>'}`;
   if(next)setTimeout(()=>{const el=document.getElementById('pbar');if(el)el.style.width=pct+'%'},300);
-
-  document.getElementById('ms-list').innerHTML=ms.map(m=>{
-    const reached=total>=m.req;
-    const redeemed=rd.includes(m.id);
-    const status=redeemed?'✅ 交換済み':reached?'🎁 交換可能！管理者に連絡してね':'あと'+(m.req-total)+'個';
-    return`<div class="ms-item ${reached&&!redeemed?'reached':''}"><div class="ms-emoji">${m.emoji}</div><div class="ms-info"><div class="ms-name">${m.name} <span style="color:var(--gold);font-size:12px">★${m.req}</span></div><div class="ms-status">${status}</div></div></div>`;
-  }).join('');
+  document.getElementById('ms-list').innerHTML=ms.map(m=>{const reached=total>=m.req;const redeemed=rd.includes(m.id);const status=redeemed?'✅ 交換済み':reached?'🎁 交換可能！':'あと'+(m.req-total)+'個';return`<div class="ms-item ${reached&&!redeemed?'reached':''}"><div class="ms-emoji">${m.emoji}</div><div class="ms-info"><div class="ms-name">${m.name} <span style="color:var(--primary);font-size:12px">★${m.req}</span></div><div class="ms-status">${status}</div></div></div>`}).join('');
 }
-
-// ========== Survey ==========
 function setSat(v){svSat=v;document.querySelectorAll('.face').forEach(f=>f.classList.toggle('selected',+f.dataset.v===v));document.getElementById('err-sat').classList.remove('show')}
 function setFit(v){svFit=v;document.querySelectorAll('#sv-fit-group .atmo-btn').forEach(b=>b.classList.toggle('selected',b.dataset.v===v))}
 function toggleTag(el){const t=el.dataset.t;el.classList.toggle('selected');if(el.classList.contains('selected'))svTags.add(t);else svTags.delete(t);document.getElementById('sv-other').style.display=svTags.has('その他')?'block':'none'}
-function setDate(d,el){svDate=d;svUndecided=false;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.remove('selected');el.classList.add('selected');document.getElementById('err-date').classList.remove('show')}
-function setUndecided(){svDate='';svUndecided=true;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.add('selected');document.getElementById('err-date').classList.remove('show')}
-
-function generateDates(){
-  const dates=[];const now=new Date();let d=new Date(now);
-  for(let i=0;i<35&&dates.length<6;i++){d.setDate(d.getDate()+1);if(d.getDay()>=1&&d.getDay()<=5)dates.push(new Date(d))}
-  const days=['日','月','火','水','木','金','土'];
-  document.getElementById('sv-dates').innerHTML=dates.map(dt=>{
-    const iso=dt.toISOString().slice(0,10);
-    return`<button class="date-btn" onclick="setDate('${iso}',this)"><span style="font-weight:600">${dt.getMonth()+1}月${dt.getDate()}日（${days[dt.getDay()]}）</span><span style="font-size:12px;color:var(--text3)">${days[dt.getDay()]}曜</span></button>`;
-  }).join('');
-}
-
-async function submitSurvey(){
-  let valid=true;
-  if(!svSat){document.getElementById('err-sat').classList.add('show');valid=false}
-  if(!svDate&&!svUndecided){document.getElementById('err-date').classList.add('show');valid=false}
-  if(!valid)return;
-  if(_busy){toast('処理中です...',false);return}_busy=true;
-  document.getElementById('btn-submit-sv').disabled=true;
-
-  let tags=[...svTags];
-  if(tags.includes('その他')){const o=document.getElementById('sv-other').value.trim();if(o){tags=tags.filter(t=>t!=='その他');tags.push(o)}}
-
-  const survey={
-    id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),
-    staffId:currentStaff.id,
-    date:new Date().toISOString().slice(0,10),
-    satisfaction:svSat,
-    issues:document.getElementById('sv-issues').value.trim(),
-    storeFit:svFit,
-    seats:document.getElementById('sv-seats').value||'',
-    switchCount:document.getElementById('sv-switch').value||'',
-    trainingWant:tags.join('、'),
-    nextTrainingDate:svUndecided?'未定':svDate,
-    submittedAt:new Date().toISOString()
-  };
-
-  await apiCall('add','アンケート回答',survey);
-  _busy=false;document.getElementById('btn-submit-sv').disabled=false;
-
-  const co=document.getElementById('confirm-overlay');co.classList.add('show');
-  setTimeout(()=>{co.classList.remove('show');resetSurvey()},1500);
-}
-
-function resetSurvey(){
-  svSat=0;svFit='';svTags.clear();svDate='';svUndecided=false;
-  document.querySelectorAll('.face').forEach(f=>f.classList.remove('selected'));
-  document.querySelectorAll('#sv-fit-group .atmo-btn').forEach(b=>b.classList.remove('selected'));
-  document.querySelectorAll('.tag').forEach(t=>t.classList.remove('selected'));
-  document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));
-  document.getElementById('sv-undecided').classList.remove('selected');
-  document.getElementById('sv-issues').value='';document.getElementById('sv-seats').value='';
-  document.getElementById('sv-switch').value='';document.getElementById('sv-other').value='';
-  document.getElementById('sv-other').style.display='none';
-}
-
-// ========== Training ==========
+function setDate(d,el){svDate=d;svUndecided=false;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.remove('selected');el.classList.add('selected')}
+function setUndecided(){svDate='';svUndecided=true;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.add('selected')}
+function generateDates(){const dates=[];const now=new Date();let d=new Date(now);for(let i=0;i<35&&dates.length<6;i++){d.setDate(d.getDate()+1);if(d.getDay()>=1&&d.getDay()<=5)dates.push(new Date(d))}const days=['日','月','火','水','木','金','土'];document.getElementById('sv-dates').innerHTML=dates.map(dt=>{const iso=dt.toISOString().slice(0,10);return`<button class="date-btn" onclick="setDate('${iso}',this)"><span style="font-weight:600">${dt.getMonth()+1}/${dt.getDate()}（${days[dt.getDay()]}）</span></button>`}).join('')}
+async function submitSurvey(){if(!svSat){document.getElementById('err-sat').classList.add('show');return}if(_busy)return;_busy=true;document.getElementById('btn-submit-sv').disabled=true;let tags=[...svTags];if(tags.includes('その他')){const o=document.getElementById('sv-other').value.trim();if(o){tags=tags.filter(t=>t!=='その他');tags.push(o)}}const survey={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),staffId:currentStaff.id,date:today(),satisfaction:svSat,issues:document.getElementById('sv-issues').value.trim(),storeFit:svFit,seats:document.getElementById('sv-seats').value||'',switchCount:document.getElementById('sv-switch').value||'',trainingWant:tags.join('、'),nextTrainingDate:svUndecided?'未定':svDate,submittedAt:new Date().toISOString().slice(0,19)};await apiCall('add','アンケート回答',survey);_busy=false;document.getElementById('btn-submit-sv').disabled=false;const co=document.getElementById('confirm-overlay');co.classList.add('show');setTimeout(()=>{co.classList.remove('show');resetSurvey()},1500)}
+function resetSurvey(){svSat=0;svFit='';svTags.clear();svDate='';svUndecided=false;document.querySelectorAll('.face').forEach(f=>f.classList.remove('selected'));document.querySelectorAll('#sv-fit-group .atmo-btn').forEach(b=>b.classList.remove('selected'));document.querySelectorAll('.tag').forEach(t=>t.classList.remove('selected'));document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.remove('selected');document.getElementById('sv-issues').value='';document.getElementById('sv-seats').value='';document.getElementById('sv-switch').value='';document.getElementById('sv-other').value='';document.getElementById('sv-other').style.display='none'}
 function renderTraining(){
-  const myFBs=fbRecords.filter(f=>f.staffId===currentStaff.id).sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const latestDate=myFBs.find(f=>f.nextTrainingDate)?.nextTrainingDate;
-
-  let html='';
-  if(latestDate){
-    html+=`<div class="training-item"><div class="training-date">📅 次回研修参加希望日：${latestDate}</div><div class="training-sub">詳細は管理者からご連絡します</div></div>`;
-  }else{
-    html+='<div class="empty">研修希望日がまだ登録されていません。<br>アンケートで希望日を回答してください。</div>';
-  }
-
+  const myFBs=fbRecords.filter(f=>f.staffId===currentStaff.id);
+  const icons={'1on1面談':'📞','ご飯1on1':'🍽','研修':'📖','店舗見学':'🏬','ペア稼働':'👥','食事会':'🍻','メンター指名':'🌟','表彰・感謝':'🏆'};
+  const pending=myFBs.filter(f=>f.nextActionType||f.nextTrainingDate).map(f=>{const t=f.nextActionType||'研修';const d=normDate(f.nextActionDate||f.nextTrainingDate||'');return{type:t,date:d,icon:icons[t]||'📋',status:'pending'}});
+  const confirmed=trainingLogs.filter(t=>(t.participants||[]).includes(currentStaff.id)).map(t=>({type:'研修',date:normDate(t.date),icon:'📖',status:'confirmed',theme:t.theme,facilitator:t.facilitator}));
+  const all=[...pending,...confirmed].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  document.getElementById('training-schedule').innerHTML=all.length?all.map(a=>{const badge=a.status==='confirmed'?'<span class="schedule-badge confirmed">確定</span>':'<span class="schedule-badge pending">予定</span>';return`<div class="schedule-item"><div class="schedule-icon ${a.status}">${a.icon}</div><div class="schedule-info"><div class="schedule-title">${a.theme||a.type}</div><div class="schedule-meta">${a.date?fmtDate(a.date):'日程未定'}${a.facilitator?' · '+a.facilitator:''}</div></div>${badge}</div>`}).join(''):'<div class="empty">研修スケジュールはまだありません<br>アンケートで希望日を回答すると<br>管理者が日程を調整します</div>';
   const needs=myFBs.flatMap(f=>f.trainingNeeds?String(f.trainingNeeds).split(',').filter(Boolean):[]);
-  if(needs.length){
-    const count={};needs.forEach(n=>count[n]=(count[n]||0)+1);
-    const sorted=Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,5);
-    html+='<div style="margin-top:16px"><div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px">あなたの研修ニーズ</div>';
-    sorted.forEach(([name,cnt])=>{html+=`<div class="training-item"><div class="training-date">${name}</div><div class="training-sub">${cnt}回リクエスト</div></div>`});
-    html+='</div>';
-  }
-
-  document.getElementById('training-info').innerHTML=html;
+  if(needs.length){const count={};needs.forEach(n=>count[n]=(count[n]||0)+1);const sorted=Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,5);document.getElementById('training-needs').innerHTML=sorted.map(([name,cnt])=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg3)"><div style="flex:1;font-size:14px;font-weight:500">${name}</div><div style="font-size:12px;color:var(--text3)">${cnt}回</div></div>`).join('')}else{document.getElementById('training-needs').innerHTML='<div class="empty">まだリクエストがありません</div>'}
 }
-
-// ========== Utils ==========
-function fmtDate(d){if(!d)return'—';return String(d).replace(/T.*$/,'').replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
-function fmtDate(d){if(!d)return'—';return String(d).replace(/T.*$/,'').replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
-function toast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(isError?'error':'success');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
-
 init();
 </script>
 </body>
