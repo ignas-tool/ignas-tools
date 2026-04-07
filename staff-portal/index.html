@@ -68,9 +68,10 @@ textarea{resize:none}
 .btn-primary:active{transform:scale(.98)}.btn-primary:disabled{opacity:.4;pointer-events:none}
 .schedule-item{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:var(--radius-sm);margin-bottom:6px}
 .schedule-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
-.schedule-icon.pending{background:rgba(240,192,64,.15)}.schedule-icon.confirmed{background:var(--green-bg)}
+.schedule-icon.pending{background:rgba(240,192,64,.15)}.schedule-icon.confirmed{background:var(--green-bg)}.schedule-icon.requested{background:rgba(74,158,222,.15)}
 .schedule-info{flex:1;min-width:0}.schedule-title{font-weight:600;font-size:14px}.schedule-meta{font-size:11px;color:var(--text3);margin-top:2px}
 .schedule-badge{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:600;flex-shrink:0}
+.schedule-badge.requested{background:rgba(74,158,222,.15);color:#2d6fa3}
 .schedule-badge.pending{background:rgba(240,192,64,.15);color:#a87c10}.schedule-badge.confirmed{background:var(--green-bg);color:var(--green)}
 .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-100px);color:#fff;padding:12px 24px;border-radius:var(--radius);font-weight:600;font-size:14px;z-index:200;transition:transform .3s;box-shadow:0 4px 20px rgba(0,0,0,.12)}
 .toast.show{transform:translateX(-50%) translateY(0)}.toast.success{background:var(--green)}.toast.error{background:var(--primary)}
@@ -133,7 +134,7 @@ textarea{resize:none}
 <div class="confirm-overlay" id="confirm-overlay"><div class="confirm-check"><svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg></div><div class="confirm-text">送信完了！</div></div>
 <script>
 const API_URL='https://script.google.com/macros/s/AKfycbx3sF1Io1dPo2MCDada6WxOGBlGujdmjbjdaB-nZPgrGMxk18MhVHK8kzLRppA0Pw6FCg/exec';
-let staffList=[],stamps=[],redemptions=[],fbRecords=[],milestones=[],trainingLogs=[];
+let staffList=[],stamps=[],redemptions=[],fbRecords=[],milestones=[],trainingLogs=[],surveys=[];
 let currentStaff=null,svSat=0,svFit='',svTags=new Set(),svDate='',svUndecided=false,_busy=false;
 function normDate(d){return d?String(d).replace(/T.*$/,'').trim():''}
 function fmtDate(d){if(!d)return'—';return normDate(d).replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
@@ -141,14 +142,61 @@ function today(){const d=new Date();d.setHours(d.getHours()+9);return d.toISOStr
 function toast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(isError?'error':'success');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 async function apiCall(action,sheet,data,id){for(let r=0;r<2;r++){try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}catch(e){if(r===1)return{error:e.message};await new Promise(x=>setTimeout(x,1000))}}}
 async function init(){
-  try{const res=await fetch(API_URL+'?action=getAllSheets');const data=await res.json();staffList=data['スタッフマスター']||[];stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));redemptions=data['景品交換']||[];fbRecords=(data['FB記録']||[]).map(r=>({...r,date:normDate(r.date)}))}catch(e){console.error(e)}
-  try{const settings=await(await fetch(API_URL+'?action=getAll&sheet=設定')).json();if(settings&&!settings.error){const msRow=settings.find(r=>r.key==='milestones');if(msRow&&msRow.value)milestones=JSON.parse(msRow.value)}}catch{}
-  if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}];
-  try{const tl=await(await fetch(API_URL+'?action=getAll&sheet=研修ログ')).json();if(tl&&!tl.error)trainingLogs=tl.map(r=>({...r,date:normDate(r.date),rating:+r.rating||0,participants:r.participants?String(r.participants).split(',').filter(Boolean):[]}))}catch{}
+  // 1. Try to load from localStorage cache first (instant display)
+  try{
+    const cached=JSON.parse(localStorage.getItem('ignas_portal_cache'));
+    if(cached&&cached.timestamp&&Date.now()-cached.timestamp<300000){ // 5 min cache
+      staffList=cached.staffList||[];
+      stamps=cached.stamps||[];
+      redemptions=cached.redemptions||[];
+      fbRecords=cached.fbRecords||[];
+      milestones=cached.milestones||[];
+      trainingLogs=cached.trainingLogs||[];
+      surveys=cached.surveys||[];
+      document.getElementById('sp-loading').style.display='none';
+      proceedWithLogin();
+      // Background refresh
+      fetchFreshData(true);
+      return;
+    }
+  }catch{}
+  // No cache - fetch fresh
+  await fetchFreshData(false);
   document.getElementById('sp-loading').style.display='none';
+  proceedWithLogin();
+}
+
+async function fetchFreshData(isBackground){
+  try{
+    const res=await fetch(API_URL+'?action=getAllSheets');
+    const data=await res.json();
+    staffList=data['スタッフマスター']||[];
+    stamps=(data['スタンプ履歴']||[]).map(r=>({...r,count:+r.count||0}));
+    redemptions=data['景品交換']||[];
+    fbRecords=(data['FB記録']||[]).map(r=>({...r,date:normDate(r.date)}));
+    surveys=(data['アンケート回答']||[]).map(r=>({...r,date:normDate(r.date),satisfaction:+r.satisfaction||0}));
+    trainingLogs=(data['研修ログ']||[]).map(r=>({...r,date:normDate(r.date),rating:+r.rating||0,participants:r.participants?String(r.participants).split(',').filter(Boolean):[]}));
+    const settings=data['設定']||[];
+    const msRow=settings.find(r=>r.key==='milestones');
+    if(msRow&&msRow.value){try{milestones=JSON.parse(msRow.value)}catch{}}
+    if(!milestones.length)milestones=[{id:'ms1',requiredStamps:5,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms2',requiredStamps:15,rewardName:'ギフトカード1000円分',rewardEmoji:'🎁'},{id:'ms3',requiredStamps:50,rewardName:'ディズニーペアチケット',rewardEmoji:'🏰'},{id:'ms4',requiredStamps:100,rewardName:'国内旅行券',rewardEmoji:'✈️'}];
+    // Save to cache
+    try{localStorage.setItem('ignas_portal_cache',JSON.stringify({timestamp:Date.now(),staffList,stamps,redemptions,fbRecords,milestones,trainingLogs,surveys}))}catch{}
+    // If background refresh and user already in app, re-render
+    if(isBackground&&currentStaff){
+      renderStampCard();
+      const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);
+      document.getElementById('portal-stamps').textContent='★'+total;
+      renderTraining();
+    }
+  }catch(e){console.error(e)}
+}
+
+function proceedWithLogin(){
   const params=new URLSearchParams(location.search),sid=params.get('staff'),urlPin=params.get('pin');
   if(sid){currentStaff=staffList.find(s=>s.id===sid);if(currentStaff){if(urlPin===(currentStaff.pin||'0000')){showApp();return}}}
-  const sel=document.getElementById('staff-select');sel.innerHTML='<option value="">-- 名前を選択 --</option>'+staffList.map(s=>`<option value="${s.id}" ${sid&&s.id===sid?'selected':''}>${s.name}</option>`).join('');
+  const sel=document.getElementById('staff-select');
+  sel.innerHTML='<option value="">-- 名前を選択 --</option>'+staffList.map(s=>`<option value="${s.id}" ${sid&&s.id===sid?'selected':''}>${s.name}</option>`).join('');
   document.getElementById('login-screen').style.display='flex';
 }
 function enterPortal(){const sid=document.getElementById('staff-select').value;if(!sid){toast('名前を選択してください',true);return}const pin=document.getElementById('pin-input').value.trim();currentStaff=staffList.find(s=>s.id===sid);if(!currentStaff){toast('スタッフが見つかりません',true);return}if(pin!==(currentStaff.pin||'0000')){document.getElementById('pin-error').classList.add('show');document.getElementById('pin-input').value='';return}document.getElementById('pin-error').classList.remove('show');document.getElementById('login-screen').style.display='none';showApp()}
@@ -176,26 +224,40 @@ function toggleTag(el){const t=el.dataset.t;el.classList.toggle('selected');if(e
 function setDate(d,el){svDate=d;svUndecided=false;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.remove('selected');el.classList.add('selected')}
 function setUndecided(){svDate='';svUndecided=true;document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.add('selected')}
 function generateDates(){const dates=[];const now=new Date();let d=new Date(now);for(let i=0;i<35&&dates.length<6;i++){d.setDate(d.getDate()+1);if(d.getDay()>=1&&d.getDay()<=5)dates.push(new Date(d))}const days=['日','月','火','水','木','金','土'];document.getElementById('sv-dates').innerHTML=dates.map(dt=>{const iso=dt.toISOString().slice(0,10);return`<button class="date-btn" onclick="setDate('${iso}',this)"><span style="font-weight:600">${dt.getMonth()+1}/${dt.getDate()}（${days[dt.getDay()]}）</span></button>`}).join('')}
-async function submitSurvey(){if(!svSat){document.getElementById('err-sat').classList.add('show');return}if(_busy)return;_busy=true;document.getElementById('btn-submit-sv').disabled=true;let tags=[...svTags];if(tags.includes('その他')){const o=document.getElementById('sv-other').value.trim();if(o){tags=tags.filter(t=>t!=='その他');tags.push(o)}}const survey={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),staffId:currentStaff.id,date:today(),satisfaction:svSat,issues:document.getElementById('sv-issues').value.trim(),storeFit:svFit,seats:document.getElementById('sv-seats').value||'',switchCount:document.getElementById('sv-switch').value||'',trainingWant:tags.join('、'),nextTrainingDate:svUndecided?'未定':svDate,submittedAt:new Date().toISOString().slice(0,19)};await apiCall('add','アンケート回答',survey);_busy=false;document.getElementById('btn-submit-sv').disabled=false;const co=document.getElementById('confirm-overlay');co.classList.add('show');setTimeout(()=>{co.classList.remove('show');resetSurvey()},1500)}
+async function submitSurvey(){if(!svSat){document.getElementById('err-sat').classList.add('show');return}if(_busy)return;_busy=true;document.getElementById('btn-submit-sv').disabled=true;let tags=[...svTags];if(tags.includes('その他')){const o=document.getElementById('sv-other').value.trim();if(o){tags=tags.filter(t=>t!=='その他');tags.push(o)}}const survey={id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),staffId:currentStaff.id,date:today(),satisfaction:svSat,issues:document.getElementById('sv-issues').value.trim(),storeFit:svFit,seats:document.getElementById('sv-seats').value||'',switchCount:document.getElementById('sv-switch').value||'',trainingWant:tags.join('、'),nextTrainingDate:svUndecided?'未定':svDate,submittedAt:new Date().toISOString().slice(0,19)};
+  // Add to local cache immediately for instant display
+  surveys.push(survey);
+  try{localStorage.setItem('ignas_portal_cache',JSON.stringify({timestamp:Date.now(),staffList,stamps,redemptions,fbRecords,milestones,trainingLogs,surveys}))}catch{}
+  await apiCall('add','アンケート回答',survey);_busy=false;document.getElementById('btn-submit-sv').disabled=false;
+  const co=document.getElementById('confirm-overlay');co.classList.add('show');
+  setTimeout(()=>{co.classList.remove('show');resetSurvey();renderTraining()},1500);
+}
 function resetSurvey(){svSat=0;svFit='';svTags.clear();svDate='';svUndecided=false;document.querySelectorAll('.face').forEach(f=>f.classList.remove('selected'));document.querySelectorAll('#sv-fit-group .atmo-btn').forEach(b=>b.classList.remove('selected'));document.querySelectorAll('.tag').forEach(t=>t.classList.remove('selected'));document.querySelectorAll('.date-btn').forEach(b=>b.classList.remove('selected'));document.getElementById('sv-undecided').classList.remove('selected');document.getElementById('sv-issues').value='';document.getElementById('sv-seats').value='';document.getElementById('sv-switch').value='';document.getElementById('sv-other').value='';document.getElementById('sv-other').style.display='none'}
 function renderTraining(){
   const myFBs=fbRecords.filter(f=>f.staffId===currentStaff.id);
+  const mySurveys=surveys.filter(s=>s.staffId===currentStaff.id);
   const icons={'1on1面談':'📞','ご飯1on1':'🍽','研修':'📖','店舗見学':'🏬','ペア稼働':'👥','食事会':'🍻','メンター指名':'🌟','表彰・感謝':'🏆'};
 
-  // Get surveys with training date requests (申請中)
-  let requests=[];
-  try{
-    const svData=staffList;// surveys loaded separately
-  }catch{}
+  // 申請中: アンケートで研修希望日を提出済み、まだFBで予定が組まれていない
+  const requested=mySurveys.filter(s=>s.nextTrainingDate&&s.nextTrainingDate!=='未定').filter(sv=>{
+    // FBでまだアクションが設定されていないものだけ申請中扱い
+    return !myFBs.some(f=>normDate(f.date)===normDate(sv.date)&&(f.nextActionType||f.nextTrainingDate));
+  }).map(s=>({type:'研修',date:normDate(s.nextTrainingDate),icon:'📖',status:'requested'}));
 
-  // Pending actions from FB records (予定 - manager set action)
-  const pending=myFBs.filter(f=>f.nextActionType||f.nextTrainingDate).map(f=>{const t=f.nextActionType||'研修';const d=normDate(f.nextActionDate||f.nextTrainingDate||'');return{type:t,date:d,icon:icons[t]||'📋',status:'pending'}});
+  // 予定: FBで次回アクションが設定済み、まだ研修ログにない
+  const pending=myFBs.filter(f=>f.nextActionType||f.nextTrainingDate).filter(f=>{
+    const aType=f.nextActionType||'研修';
+    if(aType!=='研修')return true; // 研修以外はそのまま予定
+    const aDate=normDate(f.nextActionDate||f.nextTrainingDate||'');
+    // 研修ログに同じ日付で参加記録があれば「確定」扱いになるので除外
+    return !trainingLogs.some(t=>(t.participants||[]).includes(currentStaff.id)&&normDate(t.date)===aDate);
+  }).map(f=>{const t=f.nextActionType||'研修';const d=normDate(f.nextActionDate||f.nextTrainingDate||'');return{type:t,date:d,icon:icons[t]||'📋',status:'pending'}});
 
-  // Confirmed from training logs (確定)
+  // 確定: 研修ログに参加記録あり
   const confirmed=trainingLogs.filter(t=>(t.participants||[]).includes(currentStaff.id)).map(t=>({type:'研修',date:normDate(t.date),icon:'📖',status:'confirmed',theme:t.theme,facilitator:t.facilitator}));
 
-  const all=[...pending,...confirmed].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  const badgeMap={pending:{cls:'pending',label:'予定'},confirmed:{cls:'confirmed',label:'確定'}};
+  const all=[...requested,...pending,...confirmed].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const badgeMap={requested:{cls:'requested',label:'申請中'},pending:{cls:'pending',label:'予定'},confirmed:{cls:'confirmed',label:'確定'}};
 
   document.getElementById('training-schedule').innerHTML=all.length?all.map(a=>{const b=badgeMap[a.status]||{cls:'pending',label:'—'};return`<div class="schedule-item"><div class="schedule-icon ${a.status}">${a.icon}</div><div class="schedule-info"><div class="schedule-title">${a.theme||a.type}</div><div class="schedule-meta">${a.date?fmtDate(a.date):'日程未定'}${a.facilitator?' · '+a.facilitator:''}</div></div><span class="schedule-badge ${b.cls}">${b.label}</span></div>`}).join(''):'<div class="empty">研修スケジュールはまだありません<br>アンケートで希望日を回答すると<br>管理者が日程を調整します</div>';
 
