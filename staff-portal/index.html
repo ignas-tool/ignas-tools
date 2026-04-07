@@ -137,7 +137,7 @@ let staffList=[],stamps=[],redemptions=[],fbRecords=[],milestones=[],trainingLog
 let currentStaff=null,svSat=0,svFit='',svTags=new Set(),svDate='',svUndecided=false,_busy=false;
 function normDate(d){return d?String(d).replace(/T.*$/,'').trim():''}
 function fmtDate(d){if(!d)return'—';return normDate(d).replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
-function today(){return new Date().toISOString().slice(0,10)}
+function today(){const d=new Date();d.setHours(d.getHours()+9);return d.toISOString().slice(0,10)}
 function toast(msg,isError){const t=document.getElementById('toast');t.textContent=msg;t.className='toast '+(isError?'error':'success');t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2000)}
 async function apiCall(action,sheet,data,id){for(let r=0;r<2;r++){try{const res=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify({action,sheet,data,id})});return await res.json()}catch(e){if(r===1)return{error:e.message};await new Promise(x=>setTimeout(x,1000))}}}
 async function init(){
@@ -154,15 +154,19 @@ async function init(){
 function enterPortal(){const sid=document.getElementById('staff-select').value;if(!sid){toast('名前を選択してください',true);return}const pin=document.getElementById('pin-input').value.trim();currentStaff=staffList.find(s=>s.id===sid);if(!currentStaff){toast('スタッフが見つかりません',true);return}if(pin!==(currentStaff.pin||'0000')){document.getElementById('pin-error').classList.add('show');document.getElementById('pin-input').value='';return}document.getElementById('pin-error').classList.remove('show');document.getElementById('login-screen').style.display='none';showApp()}
 function showApp(){document.getElementById('app').style.display='flex';document.getElementById('portal-name').textContent=currentStaff.name+'さん';const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);document.getElementById('portal-stamps').textContent='★'+total;renderStampCard();generateDates();renderTraining()}
 function switchTab(tab){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.getElementById('page-'+tab).classList.add('active');document.querySelectorAll('.nav-item').forEach((n,i)=>n.classList.toggle('active',['stamp','survey','training'][i]===tab));if(tab==='training')renderTraining()}
+let stampPage=0;
 function renderStampCard(){
   const total=stamps.filter(s=>s.staffId===currentStaff.id).reduce((a,s)=>a+s.count,0);
   const ms=milestones.map(m=>({id:m.id,req:m.requiredStamps,name:m.rewardName,emoji:m.rewardEmoji||'🎁'})).sort((a,b)=>a.req-b.req);
   const maxS=ms.length?ms[ms.length-1].req:5;const next=ms.find(m=>m.req>total);const rd=redemptions.filter(r=>r.staffId===currentStaff.id).map(r=>r.milestoneId);
-  let grid='';const showMax=Math.min(maxS,30);
-  for(let i=1;i<=showMax;i++){const filled=i<=total;const isMs=ms.some(m=>m.req===i);const mObj=ms.find(m=>m.req===i);grid+=`<div class="stamp-slot ${filled?'filled':''} ${isMs?'ms':''}">${filled?(isMs?mObj.emoji:'★'):(isMs?mObj.emoji:'')}</div>`}
-  if(maxS>30)grid+=`<div style="grid-column:1/-1;text-align:center;font-size:12px;color:var(--text3);padding:4px">... ${maxS}個まで</div>`;
+  const perPage=50;const pages=Math.max(1,Math.ceil(maxS/perPage));
+  if(stampPage>=pages)stampPage=0;
+  const start=stampPage*perPage+1;const end=Math.min((stampPage+1)*perPage,maxS);
+  let grid='';
+  for(let i=start;i<=end;i++){const filled=i<=total;const isMs=ms.some(m=>m.req===i);const mObj=ms.find(m=>m.req===i);grid+=`<div class="stamp-slot ${filled?'filled':''} ${isMs?'ms':''}">${filled?(isMs?mObj.emoji:'★'):(isMs?mObj.emoji:'')}</div>`}
   const pBase=ms.filter(m=>m.req<=total).pop();const base=pBase?pBase.req:0;const target=next?next.req:maxS;const pct=next&&(target-base)>0?Math.round((total-base)/(target-base)*100):total>=maxS?100:0;
-  document.getElementById('stamp-card-area').innerHTML=`<div class="stamp-label">IGNAS STAMP CARD</div><div class="stamp-count">${total}</div><div class="stamp-count-sub">スタンプ</div><div class="stamp-grid">${grid}</div>${next?`<div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div><div class="progress-text">次：${next.emoji} ${next.name}（あと${next.req-total}個）</div>`:'<div style="color:var(--green);font-weight:700;font-size:14px;margin-top:8px">🎉 全達成！</div>'}`;
+  const pageNav=pages>1?`<div style="display:flex;justify-content:center;gap:8px;margin-top:12px">${Array.from({length:pages},(_,i)=>`<button onclick="stampPage=${i};renderStampCard()" style="width:32px;height:32px;border-radius:50%;border:2px solid ${i===stampPage?'var(--primary)':'var(--border)'};background:${i===stampPage?'rgba(212,32,32,.08)':'var(--bg2)'};font-size:12px;font-weight:600;color:${i===stampPage?'var(--primary)':'var(--text3)';cursor:pointer">${i+1}</button>`).join('')}</div>`:'';
+  document.getElementById('stamp-card-area').innerHTML=`<div class="stamp-label">IGNAS STAMP CARD</div><div class="stamp-count">${total}</div><div class="stamp-count-sub">スタンプ</div><div class="stamp-grid">${grid}</div>${pageNav}${next?`<div class="progress-bar"><div class="progress-fill" id="pbar" style="width:0%"></div></div><div class="progress-text">次：${next.emoji} ${next.name}（あと${next.req-total}個）</div>`:'<div style="color:var(--green);font-weight:700;font-size:14px;margin-top:8px">🎉 全達成！</div>'}`;
   if(next)setTimeout(()=>{const el=document.getElementById('pbar');if(el)el.style.width=pct+'%'},300);
   document.getElementById('ms-list').innerHTML=ms.map(m=>{const reached=total>=m.req;const redeemed=rd.includes(m.id);const status=redeemed?'✅ 交換済み':reached?'🎁 交換可能！':'あと'+(m.req-total)+'個';return`<div class="ms-item ${reached&&!redeemed?'reached':''}"><div class="ms-emoji">${m.emoji}</div><div class="ms-info"><div class="ms-name">${m.name} <span style="color:var(--primary);font-size:12px">★${m.req}</span></div><div class="ms-status">${status}</div></div></div>`}).join('');
 }
@@ -177,10 +181,24 @@ function resetSurvey(){svSat=0;svFit='';svTags.clear();svDate='';svUndecided=fal
 function renderTraining(){
   const myFBs=fbRecords.filter(f=>f.staffId===currentStaff.id);
   const icons={'1on1面談':'📞','ご飯1on1':'🍽','研修':'📖','店舗見学':'🏬','ペア稼働':'👥','食事会':'🍻','メンター指名':'🌟','表彰・感謝':'🏆'};
+
+  // Get surveys with training date requests (申請中)
+  let requests=[];
+  try{
+    const svData=staffList;// surveys loaded separately
+  }catch{}
+
+  // Pending actions from FB records (予定 - manager set action)
   const pending=myFBs.filter(f=>f.nextActionType||f.nextTrainingDate).map(f=>{const t=f.nextActionType||'研修';const d=normDate(f.nextActionDate||f.nextTrainingDate||'');return{type:t,date:d,icon:icons[t]||'📋',status:'pending'}});
+
+  // Confirmed from training logs (確定)
   const confirmed=trainingLogs.filter(t=>(t.participants||[]).includes(currentStaff.id)).map(t=>({type:'研修',date:normDate(t.date),icon:'📖',status:'confirmed',theme:t.theme,facilitator:t.facilitator}));
+
   const all=[...pending,...confirmed].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
-  document.getElementById('training-schedule').innerHTML=all.length?all.map(a=>{const badge=a.status==='confirmed'?'<span class="schedule-badge confirmed">確定</span>':'<span class="schedule-badge pending">予定</span>';return`<div class="schedule-item"><div class="schedule-icon ${a.status}">${a.icon}</div><div class="schedule-info"><div class="schedule-title">${a.theme||a.type}</div><div class="schedule-meta">${a.date?fmtDate(a.date):'日程未定'}${a.facilitator?' · '+a.facilitator:''}</div></div>${badge}</div>`}).join(''):'<div class="empty">研修スケジュールはまだありません<br>アンケートで希望日を回答すると<br>管理者が日程を調整します</div>';
+  const badgeMap={pending:{cls:'pending',label:'予定'},confirmed:{cls:'confirmed',label:'確定'}};
+
+  document.getElementById('training-schedule').innerHTML=all.length?all.map(a=>{const b=badgeMap[a.status]||{cls:'pending',label:'—'};return`<div class="schedule-item"><div class="schedule-icon ${a.status}">${a.icon}</div><div class="schedule-info"><div class="schedule-title">${a.theme||a.type}</div><div class="schedule-meta">${a.date?fmtDate(a.date):'日程未定'}${a.facilitator?' · '+a.facilitator:''}</div></div><span class="schedule-badge ${b.cls}">${b.label}</span></div>`}).join(''):'<div class="empty">研修スケジュールはまだありません<br>アンケートで希望日を回答すると<br>管理者が日程を調整します</div>';
+
   const needs=myFBs.flatMap(f=>f.trainingNeeds?String(f.trainingNeeds).split(',').filter(Boolean):[]);
   if(needs.length){const count={};needs.forEach(n=>count[n]=(count[n]||0)+1);const sorted=Object.entries(count).sort((a,b)=>b[1]-a[1]).slice(0,5);document.getElementById('training-needs').innerHTML=sorted.map(([name,cnt])=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg3)"><div style="flex:1;font-size:14px;font-weight:500">${name}</div><div style="font-size:12px;color:var(--text3)">${cnt}回</div></div>`).join('')}else{document.getElementById('training-needs').innerHTML='<div class="empty">まだリクエストがありません</div>'}
 }
