@@ -3,56 +3,37 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#d42020">
 <title>IGNAS Tools</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#faf6f0;color:#2a2520;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans',sans-serif;background:#f5f5f5;color:#1a1a1a;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
 .container{max-width:400px;width:100%}
-h1{font-size:22px;text-align:center;margin-bottom:8px;color:#e86430}
-.subtitle{text-align:center;font-size:12px;color:#9e9890;margin-bottom:24px}
-.section-label{font-size:11px;font-weight:700;color:#9e9890;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-left:4px}
-.card{display:block;background:#fff;border:1.5px solid #e0d8d0;border-radius:14px;padding:18px;margin-bottom:10px;text-decoration:none;color:#2a2520;transition:all .2s;box-shadow:0 2px 8px rgba(42,37,32,.05)}
+.hero{background:linear-gradient(135deg,#d42020,#ff4d4d);border-radius:20px;padding:32px 24px;text-align:center;color:#fff;margin-bottom:24px}
+.hero h1{font-size:24px;font-weight:800}
+.hero p{font-size:12px;opacity:.7;margin-top:4px}
+.section-label{font-size:11px;font-weight:700;color:#999;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px;padding-left:4px}
+.card{display:block;background:#fff;border:1.5px solid #e8e8e8;border-radius:14px;padding:18px;margin-bottom:10px;text-decoration:none;color:#1a1a1a;transition:all .15s;box-shadow:0 1px 6px rgba(0,0,0,.05)}
 .card:active{transform:scale(.98)}
 .card h2{font-size:15px;margin-bottom:3px}
-.card p{font-size:12px;color:#6b6560}
+.card p{font-size:12px;color:#666}
 .card .emoji{font-size:24px;float:right}
-.card.staff-card{border-color:#e86430;background:linear-gradient(135deg,#fff,#fef5f0)}
-.card.staff-card h2{color:#e86430}
-.divider{height:1px;background:#e5ddd5;margin:20px 0}
-.footer{text-align:center;font-size:11px;color:#9e9890;margin-top:20px}
+.card.staff-card{border-color:#d42020;background:linear-gradient(135deg,#fff,#fef5f5)}
+.card.staff-card h2{color:#d42020}
+.divider{height:1px;background:#e8e8e8;margin:20px 0}
+.footer{text-align:center;font-size:11px;color:#999;margin-top:20px}
 </style>
 </head>
 <body>
 <div class="container">
-  <h1>IGNAS Tools</h1>
-  <div class="subtitle">株式会社IGNAS Holdings</div>
-
+  <div class="hero"><h1>IGNAS Tools</h1><p>株式会社IGNAS Holdings</p></div>
   <div class="section-label">👤 スタッフ向け</div>
-  <a class="card staff-card" href="./staff-portal/">
-    <div class="emoji">🌟</div>
-    <h2>スタッフポータル</h2>
-    <p>スタンプカード・アンケート・研修情報</p>
-  </a>
-
+  <a class="card staff-card" href="./staff-portal/"><div class="emoji">🌟</div><h2>スタッフポータル</h2><p>スタンプカード・アンケート・研修情報</p></a>
   <div class="divider"></div>
-
   <div class="section-label">🔒 管理者向け</div>
-  <a class="card" href="./fb/">
-    <div class="emoji">📞</div>
-    <h2>FB Manager</h2>
-    <p>スタッフフィードバック記録・管理</p>
-  </a>
-  <a class="card" href="./stamp/">
-    <div class="emoji">⭐</div>
-    <h2>スタンプラリー管理</h2>
-    <p>スタンプ付与・ランキング・景品管理</p>
-  </a>
-  <a class="card" href="./analytics/">
-    <div class="emoji">📊</div>
-    <h2>データ分析</h2>
-    <p>満足度推移・離職リスク・着座数分析</p>
-  </a>
-
+  <a class="card" href="./fb/"><div class="emoji">📞</div><h2>FB Manager</h2><p>スタッフフィードバック記録・管理</p></a>
+  <a class="card" href="./stamp/"><div class="emoji">⭐</div><h2>スタンプラリー管理</h2><p>スタンプ付与・ランキング・景品管理</p></a>
+  <a class="card" href="./analytics/"><div class="emoji">📊</div><h2>データ分析</h2><p>満足度推移・離職リスク・着座数分析</p></a>
   <div class="footer">© 2026 IGNAS Holdings</div>
 </div>
 </body>
