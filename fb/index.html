@@ -12,14 +12,15 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
-  --bg:#faf6f0;--bg2:#ffffff;--bg3:#f0ebe3;--bg4:#e5ddd5;
-  --text:#2a2520;--text2:#6b6560;--text3:#9e9890;
-  --accent:#e86430;--accent2:#f09060;--accent-bg:rgba(232,100,48,0.08);
-  --green:#3dba6d;--green-bg:rgba(61,186,109,0.08);
-  --yellow:#d4a020;--yellow-bg:rgba(212,160,32,0.08);
-  --red:#dc4030;--red-bg:rgba(220,64,48,0.08);
-  --border:#e0d8d0;--radius:14px;--radius-sm:10px;
-  --shadow:0 2px 12px rgba(42,37,32,0.07);
+  --bg:#f5f5f5;--bg2:#ffffff;--bg3:#f0f0f0;--bg4:#e5e5e5;
+  --text:#1a1a1a;--text2:#666;--text3:#999;
+  --accent:#d42020;--accent2:#ff4d4d;--accent-bg:rgba(212,32,32,0.06);
+  --green:#2ecc71;--green-bg:rgba(46,204,113,0.08);
+  --yellow:#f0c040;--yellow-bg:rgba(240,192,64,0.08);
+  --red:#d42020;--red-bg:rgba(212,32,32,0.08);
+  --blue:#4a9ede;--blue-bg:rgba(74,158,222,0.08);
+  --border:#e8e8e8;--radius:14px;--radius-sm:10px;
+  --shadow:0 1px 6px rgba(0,0,0,0.05);
   --font-ja:'Zen Kaku Gothic New',sans-serif;
   --font-en:'DM Sans',sans-serif;
   --safe-bottom:env(safe-area-inset-bottom,0px);
@@ -36,12 +37,13 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
 
 #app{height:100%;display:flex;flex-direction:column;max-width:480px;margin:0 auto;position:relative;overflow:hidden}
 
-.header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--bg2);flex-shrink:0;z-index:10;box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.header h1{font-family:var(--font-en);font-size:18px;font-weight:700;letter-spacing:-.5px;color:var(--accent)}
+.header{padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:none;background:linear-gradient(135deg,#d42020,#ff4d4d);flex-shrink:0;z-index:10;box-shadow:0 2px 8px rgba(212,32,32,.15);border-radius:0 0 16px 16px;color:#fff}
+.header h1{font-family:var(--font-en);font-size:18px;font-weight:700;letter-spacing:-.5px;color:#fff}
+.header a{color:rgba(255,255,255,.7)}
 .header-actions{display:flex;gap:8px}
-.header-btn{width:36px;height:36px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;transition:background .2s}
-.header-btn:active{background:var(--bg4)}
-.header-btn svg{width:18px;height:18px;stroke:var(--text2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.header-btn{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;transition:background .2s}
+.header-btn:active{background:rgba(255,255,255,.25)}
+.header-btn svg{width:18px;height:18px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 
 .bottom-nav{display:flex;border-top:1px solid var(--border);background:var(--bg2);flex-shrink:0;padding-bottom:var(--safe-bottom);box-shadow:0 -1px 4px rgba(0,0,0,.04);position:fixed;bottom:0;left:0;right:0;z-index:20;max-width:520px;margin:0 auto}
 .nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px 4px 6px;gap:3px;transition:color .2s;position:relative}
@@ -273,6 +275,7 @@ select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='ht
     </div>
 
     <div class="page" id="page-training">
+      <div class="card"><div class="card-title"><span class="dot" style="background:var(--blue,#4a9ede)"></span>研修予定</div><div id="training-pending"></div></div>
       <div style="display:flex;gap:8px;margin-bottom:12px">
         <button class="btn-primary" style="width:auto;padding:10px 16px;font-size:14px;box-shadow:none;flex-shrink:0" onclick="showTrainingModal()">+ 研修を記録</button>
       </div>
@@ -434,7 +437,7 @@ async function completeFollowUp(fbId){
   refreshDashboard();showToast('フォロー完了にしました');
 }
 
-function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function today(){return new Date().toISOString().slice(0,10)}function faces(r){return['','😫','😟','😐','😊','🤩'][r]||'—'}function atmoLabel(v){return{good:'😄 良好',normal:'😐 普通',caution:'⚠️ 要注意'}[v]||'—'}
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7)}function today(){const d=new Date();d.setHours(d.getHours()+9);return d.toISOString().slice(0,10)}function faces(r){return['','😫','😟','😐','😊','🤩'][r]||'—'}function atmoLabel(v){return{good:'😄 良好',normal:'😐 普通',caution:'⚠️ 要注意'}[v]||'—'}
 function fmtDate(d){if(!d)return'—';return String(d).replace(/T.*$/,'').replace(/(\d{4})-(\d{2})-(\d{2})/,'$1/$2/$3')}
 function normDate(d){return d?String(d).replace(/T.*$/,'').trim():''}
 
@@ -575,10 +578,15 @@ async function loadTrainingLogs(){
 function getTrainingLogs(){return _trainingLogs}
 
 function renderTrainingLog(){
+  // Render pending training schedule from FB actions
+  const fbs=getFBs(),staff=getStaff();
+  const actionIcons={'1on1面談':'📞','ご飯1on1':'🍽','研修':'📖','店舗見学':'🏬','ペア稼働':'👥','食事会':'🍻','メンター指名':'🌟','表彰・感謝':'🏆'};
+  const pending=fbs.filter(f=>f.nextActionType).map(f=>{const s=staff.find(st=>st.id===f.staffId);return{staffId:f.staffId,staffName:s?s.name:'不明',type:f.nextActionType,date:normDate(f.nextActionDate||f.nextTrainingDate||''),icon:actionIcons[f.nextActionType]||'📋',fbId:f.id}}).sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
+  document.getElementById('training-pending').innerHTML=pending.length?pending.map(a=>`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bg3,#f0f0f0)"><div style="font-size:20px;flex-shrink:0">${a.icon}</div><div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px">${a.staffName}</div><div style="font-size:12px;color:var(--text3,#999)">${a.type} · ${a.date?fmtDate(a.date):'日程未定'}</div></div>${a.type==='研修'?`<button onclick="startTrainingFromPending('${a.staffId}','${a.date}')" style="padding:5px 12px;border-radius:6px;background:var(--accent,#e86430);color:#fff;font-size:11px;font-weight:600;border:none;cursor:pointer;white-space:nowrap">📖 記録</button>`:''}</div>`).join(''):'<div class="empty"><p>予定されたアクションはありません</p></div>';
+
   loadTrainingLogs().then(()=>{
     const logs=getTrainingLogs().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
     document.getElementById('training-log-list').innerHTML=logs.length?logs.map(t=>{
-      const staff=getStaff();
       const names=(t.participants||[]).map(pid=>{const s=staff.find(x=>x.id===pid);return s?s.name:pid}).join('、');
       const faceLabels=['','😫','😟','😐','😊','🤩'];
       return`<div class="card" style="cursor:pointer" onclick="showTrainingDetail('${t.id}')">
@@ -592,8 +600,14 @@ function renderTrainingLog(){
           <div style="font-size:28px;flex-shrink:0">${faceLabels[t.rating]||'—'}</div>
         </div>
       </div>`;
-    }).join(''):'<div class="empty"><p>研修記録はまだありません<br>「+ 研修を記録」から登録してください</p></div>';
+    }).join(''):'<div class="empty"><p>研修記録はまだありません</p></div>';
   });
+}
+
+function startTrainingFromPending(staffId,date){
+  showTrainingModal();
+  if(date)document.getElementById('tr-date').value=date;
+  setTimeout(()=>{const cb=document.querySelector(`.tr-check[value="${staffId}"]`);if(cb)cb.checked=true},100);
 }
 
 function showTrainingModal(id){
